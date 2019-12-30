@@ -1,8 +1,12 @@
 ﻿using System;
+using System.IO;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+
+using InputOutput;
+using Global;
 
 namespace Debugger
 {
@@ -19,7 +23,7 @@ namespace Debugger
 
             for (int i = 0; i < toPrint.Count; i++)
             {
-                if(printIndex == true)
+                if (printIndex == true)
                 {
                     printLine += "<" + i + "> ";
                 }
@@ -47,9 +51,42 @@ namespace Debugger
             Debug.Log(printLine);
         }
 
-        public static void PrintListList(List<List<object>> toPrint, bool printInTextFile = false)
+        public static void PrintListList(List<List<Vector3>> toPrint, bool printIndex = false, bool printInLog = false, bool clearLog = true)
         {
-            
+            if (printInLog == true)
+            {
+                IO_Stream io = new IO_Stream(Constants.logFile);
+                List<string> linesToWrite = new List<string>();
+
+                for (int i = 0; i < toPrint.Count; i++)
+                {
+                    linesToWrite.Add("");
+
+                    if (printIndex == true)
+                    {
+                        linesToWrite[i] += " <" + i + "> ";
+                    }
+
+                    for (int j = 0; j < toPrint[i].Count; j++)
+                    {
+                        if (printIndex == true)
+                        {
+                            linesToWrite[i] += " <" + j + "> ";
+
+                        }
+
+                        linesToWrite[i] += toPrint[i][j] + " ; ";
+                    }
+                }
+
+                linesToWrite.Add("\n\n");
+                io.WriteLinesToFile(linesToWrite, clearLog);
+            }
+            else
+            {
+                // TODO
+            }
+
         }
 
         public static void PrintDictionary(Dictionary<object, object> toPrint, bool printInTextFile = false)

@@ -68,12 +68,15 @@
     <Compile Include="Assets\MeshDeformerInput.cs" />
     <Compile Include="Assets\RoundedCube.cs" />
     <Compile Include="Assets\Scripts\Debugger\DebugHelper.cs" />
+    <Compile Include="Assets\Scripts\Global\Constants.cs" />
     <Compile Include="Assets\Scripts\HelperScripts\Components\BoxColliderID.cs" />
     <Compile Include="Assets\Scripts\HelperScripts\Methods\MeshManager.cs" />
     <Compile Include="Assets\Scripts\HelperScripts\Tree\Node.cs" />
     <Compile Include="Assets\Scripts\HelperScripts\Tree\TreeStructure.cs" />
+    <Compile Include="Assets\Scripts\IO\IO_Stream.cs" />
     <Compile Include="Assets\UnderlyingMeshCollision.cs" />
     <None Include="Assets\Rounded Cube Grid.shader" />
+    <None Include="Assets\Scripts\IO\Log.txt" />
     <Reference Include="Unity.Timeline.Editor">
       <HintPath>C:/Users/mandh/Mesh Deformation/Library/ScriptAssemblies/Unity.Timeline.Editor.dll</HintPath>
     </Reference>
