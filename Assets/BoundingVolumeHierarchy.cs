@@ -18,10 +18,14 @@ public class BoundingVolumeHierarchy : MonoBehaviour
     TreeStructure tree;
     MeshCollider objectMeshCollider;
     int objectMeshColliderLayer;
+    Dictionary<Vector3, List<Vector3>> connectVertices;
 
     // In Development
     int maxCollidersRendered = 100000;
     int maxIterations = 2;
+
+    // Debug Only
+    public int vertexToCheck = 0;
 
     void Start()
     {
@@ -31,16 +35,17 @@ public class BoundingVolumeHierarchy : MonoBehaviour
         triangles = mesh.triangles;
         objectMeshColliderLayer = LayerMask.NameToLayer("ObjectMeshCollider");
 
-        ClearOldBVH();
+        //ClearOldBVH();
         //ApplyBVH();
         //ApplyVertexColliders();
 
-        DebugHelper.PrintArray(vertices.ToList().Cast<object>().ToArray(), true);
-        DebugHelper.PrintArray(triangles.ToList().Cast<object>().ToArray());
+        //DebugHelper.PrintArray(vertices.ToList().Cast<object>().ToArray(), true);
+        //DebugHelper.PrintArray(triangles.ToList().Cast<object>().ToArray());
 
         MeshManager meshManager = new MeshManager(mesh);
-        var vertexDetails = meshManager.GetConnectedVertices();
-      //  DebugHelper.PrintListList((List<List<object>>) vertexDetails["trianglesInfo"]);
+        connectVertices = meshManager.GetConnectedVertices();
+        //DebugHelper.PrintListList((List<List<object>>) vertexDetails["trianglesInfo"]);
+        //DebugHelper.PrintConnectedVertices(connectVertices, true);
     }
 
     void FixedUpdate()
@@ -143,6 +148,15 @@ public class BoundingVolumeHierarchy : MonoBehaviour
         }
     }
 
+    #region Getters
+
+    public Dictionary<Vector3, List<Vector3>> GetConnectedVertices()
+    {
+        return connectVertices;
+    }
+
+    #endregion
+
     private void OnCollisionEnter(Collision collision)
     {
 
@@ -153,12 +167,21 @@ public class BoundingVolumeHierarchy : MonoBehaviour
         Gizmos.color = Color.blue;
         Handles.color = Color.blue;
 
-        for (int i = 0; i < colliders.Count; i++)
+        /*for (int i = 0; i < colliders.Count; i++)
         {
             Vector3 vertex = transform.TransformPoint(colliders[i].center);
 
             Gizmos.DrawSphere(transform.TransformPoint(colliders[i].center), 0.005f);
             Handles.Label(new Vector3(vertex.x + 0.05f, vertex.y + 0.05f, vertex.z + 0.05f), i.ToString());
-        }
+        }*/
+
+        /*
+        Gizmos.DrawSphere(transform.TransformPoint(connectVertices.ElementAt(vertexToCheck).Key), 0.005f);
+
+        Gizmos.color = Color.green;
+        for (int i = 0; i < connectVertices.ElementAt(vertexToCheck).Value.Count; i++)
+        {
+            Gizmos.DrawSphere(transform.TransformPoint(connectVertices.ElementAt(vertexToCheck).Value[i]), 0.005f);
+        }*/
     }
 }

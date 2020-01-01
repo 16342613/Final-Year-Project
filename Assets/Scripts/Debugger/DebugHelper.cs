@@ -89,9 +89,35 @@ namespace Debugger
 
         }
 
-        public static void PrintDictionary(Dictionary<object, object> toPrint, bool printInTextFile = false)
+        public static void PrintConnectedVertices(Dictionary<Vector3, List<Vector3>> toPrint, bool printInLog = false, bool clearLog = true)
         {
-            // TODO
+            if (printInLog == true)
+            {
+                IO_Stream io = new IO_Stream(Constants.logFile);
+                List<string> linesToWrite = new List<string>();
+                linesToWrite.Add("\n\n");
+
+                for (int i = 0; i < toPrint.Keys.Count; i++)
+                {
+                    linesToWrite.Add("");
+                    linesToWrite[i] += "<< " + toPrint.ElementAt(i).Key + " >>";
+
+                    for (int j = 0; j < toPrint.ElementAt(i).Value.Count; j++)
+                    {
+                        if (printInLog == true)
+                        {
+                            linesToWrite[i] += toPrint.ElementAt(i).Value[j] + " ; ";
+                        }
+                    }
+                }
+
+                linesToWrite.Add("\n\n");
+                io.WriteLinesToFile(linesToWrite, clearLog);
+            }
+            else
+            {
+                // TODO
+            }
         }
     }
 }

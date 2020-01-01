@@ -44,12 +44,26 @@ namespace HelperScripts.Methods
             DebugHelper.PrintListList(triangleDetails, false, true);
             GetVertexPath(new Vector3(0.5f, -0.5f, 0.5f), new Vector3(0.5f, 0.5f, 0.5f));
 
-            for (int i = 0; i < vertices.Length; i++)
+            // Loop through each triangle
+            for (int i = 0; i < triangleDetails.Count; i++)
             {
-                // Avoid duplicate vertices
-                if (connectedVertices.ContainsKey(vertices[i]) == false)
+                // Loop through each vertex in the triangle
+                for (int j = 0; j < 3; j++)
                 {
+                    // Add a key for this vertex into the connected vertices dictionary if it is not in the dictionary already
+                    if (connectedVertices.ContainsKey(triangleDetails[i][j]) == false)
+                    {
+                        connectedVertices.Add(triangleDetails[i][j], new List<Vector3>());
+                    }
 
+                    // Loop through each vertex in the triangle again to add the appropriate vertices to the connected list
+                    for(int k=0; k<3; k++)
+                    {
+                        if((triangleDetails[i][j] != triangleDetails[i][k]) && (connectedVertices[triangleDetails[i][j]].Contains(triangleDetails[i][k]) == false))
+                        {
+                            connectedVertices[triangleDetails[i][j]].Add(triangleDetails[i][k]);
+                        }
+                    }
                 }
             }
 

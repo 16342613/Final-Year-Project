@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 [RequireComponent(typeof(MeshFilter))]
@@ -19,6 +20,10 @@ public class MeshDeformer : MonoBehaviour
 
     float uniformScale = 1f;
 
+    Vector3 contactPoint;
+    float forceOffset;
+    //public int testVertexIndex = 3000;
+
     void Start()
     {
         deformingMesh = GetComponent<MeshFilter>().mesh;
@@ -30,6 +35,9 @@ public class MeshDeformer : MonoBehaviour
         }
 
         vertexVelocities = new Vector3[originalVertices.Length];
+
+        forceOffset = GameObject.Find("Main Camera").GetComponent<MeshDeformerInput>().forceOffset;
+
         //GetComponent<Rigidbody>().AddTorque(0, 0, -100f);
     }
 
@@ -65,6 +73,8 @@ public class MeshDeformer : MonoBehaviour
     public void AddDeformingForce(Vector3 point, float force)
     {
         point = transform.InverseTransformPoint(point);
+        contactPoint = point; // recent addition
+
         for (int i = 0; i < displacedVertices.Length; i++)
         {
             AddForceToVertex(i, point, force);
@@ -74,6 +84,11 @@ public class MeshDeformer : MonoBehaviour
     void AddForceToVertex(int i, Vector3 point, float force)
     {
         float distance = Vector3.Distance(displacedVertices[i], point);
+
+        if (i == 3000)
+        {
+            Debug.Log(distance);
+        }
 
         if (distance < maxAreaOfEffect)
         {
@@ -97,6 +112,17 @@ public class MeshDeformer : MonoBehaviour
             point += collision.contacts[i].normal * -0.1f;
             collisionPoints.Add(point);
         }
+    }
+
+    void OnDrawGizmos()
+    {
+        Gizmos.color = Color.blue;
+        Handles.color = Color.blue;
+
+        Gizmos.DrawSphere(transform.TransformPoint(contactPoint), 0.01f);
+
+        Gizmos.color = Color.green;
+        Gizmos.DrawSphere(transform.TransformPoint(displacedVertices[3000]), 0.01f);
     }
 }
 
