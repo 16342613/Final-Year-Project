@@ -10,6 +10,7 @@
 Log.txt
 Library/*
 Assets/Scripts/IO/Log.txt
+C:\Users\mandh\Mesh Deformation\Assets\Scripts\IO\Log.txt
 
 # Asset meta data should only be ignored when the corresponding asset is also ignored
 !/[Aa]ssets/**/*.meta
