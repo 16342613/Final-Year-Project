@@ -38,3 +38,4 @@ ExportedObj/
 *.booproj
 *.svd
 *.pdb
+Assets/Scripts/IO/Log.txt
