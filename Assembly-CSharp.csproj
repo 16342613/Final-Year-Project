@@ -67,6 +67,7 @@
     <Compile Include="Assets\MeshDeformer.cs" />
     <Compile Include="Assets\MeshDeformerInput.cs" />
     <Compile Include="Assets\RoundedCube.cs" />
+    <Compile Include="Assets\Scripts\Core\Deformer.cs" />
     <Compile Include="Assets\Scripts\Debugger\DebugHelper.cs" />
     <Compile Include="Assets\Scripts\Global\Constants.cs" />
     <Compile Include="Assets\Scripts\HelperScripts\Components\BoxColliderID.cs" />

@@ -85,19 +85,23 @@ public class MeshDeformer : MonoBehaviour
     {
         float distance = Vector3.Distance(displacedVertices[i], point);
 
-        if (i == 3000)
-        {
-            Debug.Log(distance);
-        }
 
         if (distance < maxAreaOfEffect)
         {
             Vector3 pointToVertex = displacedVertices[i] - point;
-            Debug.DrawLine(point, displacedVertices[i]);
+          //  Debug.DrawLine(point, displacedVertices[i]);
             pointToVertex *= uniformScale;
             float attenuatedForce = force / (mass + (pointToVertex * test).sqrMagnitude);
             float velocity = attenuatedForce * Time.deltaTime;
             vertexVelocities[i] += pointToVertex.normalized * velocity;
+
+
+            if (i == 3000)
+            {
+                //Debug.Log("Vertex: " + displacedVertices[i] + "; Hit: " + point);
+                Debug.Log(displacedVertices[i]);
+            }
+
         }
 
     }
@@ -123,6 +127,9 @@ public class MeshDeformer : MonoBehaviour
 
         Gizmos.color = Color.green;
         Gizmos.DrawSphere(transform.TransformPoint(displacedVertices[3000]), 0.01f);
+
+        Gizmos.color = Color.white;
+        Gizmos.DrawSphere(transform.TransformPoint(displacedVertices[5500]), 0.01f);
     }
 }
 

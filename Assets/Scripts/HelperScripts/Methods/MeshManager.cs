@@ -14,7 +14,6 @@ namespace HelperScripts.Methods
         private int[] triangles;
         private List<List<Vector3>> triangleDetails;
 
-
         public MeshManager(Mesh queryMesh)
         {
             this.queryMesh = queryMesh;
@@ -73,6 +72,8 @@ namespace HelperScripts.Methods
         public List<Vector3> GetVertexPath(Vector3 startVertex, Vector3 targetVertex)
         {
             List<Vector3> path = new List<Vector3>();
+
+            // TODO
 
             return path;
         }

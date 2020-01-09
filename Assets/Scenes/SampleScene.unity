@@ -419,7 +419,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 703677768}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5893a1b22e1124140b5e910f5754c937, type: 3}
   m_Name: 
@@ -437,12 +437,26 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 703677768}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 886c5593f7a873b468165e375973e736, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   vertexToCheck: 1
+--- !u!114 &703677775
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 703677768}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9e57a10b49900ea429e460e6497bfd08, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  meshStrength: 1
+  vertexMass: 1
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0
@@ -867,7 +881,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 4294967295
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!154 &1496505612
 TerrainCollider:
   m_ObjectHideFlags: 0
@@ -1272,7 +1286,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8296172668542234783}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5893a1b22e1124140b5e910f5754c937, type: 3}
   m_Name: 
@@ -1282,7 +1296,7 @@ MonoBehaviour:
   test: 5
   localForce: 10
   mass: 1
-  maxAreaOfEffect: 1
+  maxAreaOfEffect: 10
 --- !u!114 &2143721211
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1290,7 +1304,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8296172668542234783}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 886c5593f7a873b468165e375973e736, type: 3}
   m_Name: 
@@ -1328,7 +1342,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8296172668542234783}
   m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 10.082, y: 0.322, z: 3.404}
+  m_LocalPosition: {x: 10.082, y: 1.106, z: 3.404}
   m_LocalScale: {x: 2, y: 2, z: 0.02}
   m_Children: []
   m_Father: {fileID: 0}
@@ -1386,6 +1400,7 @@ GameObject:
   - component: {fileID: 2143721206}
   - component: {fileID: 8296172668542234784}
   - component: {fileID: 2143721212}
+  - component: {fileID: 8296172668542234785}
   - component: {fileID: 2143721207}
   - component: {fileID: 2143721211}
   m_Layer: 0
@@ -1408,3 +1423,17 @@ BoxCollider:
   serializedVersion: 2
   m_Size: {x: 1, y: 1.0000002, z: 1.0000002}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &8296172668542234785
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8296172668542234783}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9e57a10b49900ea429e460e6497bfd08, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  meshStrength: 1
+  vertexMass: 1

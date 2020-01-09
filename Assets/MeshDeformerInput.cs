@@ -37,13 +37,15 @@ public class MeshDeformerInput : MonoBehaviour
 
         if (Physics.Raycast(inputRay, out hit))
         {
-            MeshDeformer deformer = hit.collider.GetComponent<MeshDeformer>();
-            
+            //MeshDeformer deformer = hit.collider.GetComponent<MeshDeformer>();
+            Deformer deformer = hit.collider.GetComponent<Deformer>();
+
             if (deformer)
             {
                 Vector3 point = hit.point;
                 point += hit.normal * forceOffset;
-                deformer.AddDeformingForce(point, force);
+                //deformer.AddDeformingForce(point, force);
+                deformer.RespondToForce(point, force);
             }
         }
     }
