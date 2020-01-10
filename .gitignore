@@ -6,6 +6,7 @@
 /[Mm]emoryCaptures/
 .DS_Store
 Library/*
+Library/
 Assets/Scripts/IO/Log.txt
 C:\Users\mandh\Mesh Deformation\Assets\Scripts\IO\Log.txt
 
