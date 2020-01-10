@@ -1,9 +1,11 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 public class Deformer : MonoBehaviour
 {
+    private Renderer objectRenderer;
     private Mesh deformedMesh;
     private Vector3[] deformedVertices;
     private Vector3[] originalVertices;
@@ -17,6 +19,7 @@ public class Deformer : MonoBehaviour
 
     void Start()
     {
+        objectRenderer = this.GetComponent<Renderer>();
         deformedMesh = this.GetComponent<MeshFilter>().mesh;
         originalVertices = deformedMesh.vertices;
         deformedVertices = deformedMesh.vertices;
@@ -32,10 +35,15 @@ public class Deformer : MonoBehaviour
 
         deformedMesh.vertices = deformedVertices;
         deformedMesh.RecalculateNormals();
+
+        Debug.Log(objectRenderer.material.GetVector("_ForceOrigin"));
     }
 
     public void RespondToForce(Vector3 forceOrigin, float force)
     {
+        collisionPoint = forceOrigin;
+        objectRenderer.material.SetVector("_ForceOrigin", forceOrigin);
+
         Vector3 forceOrigin_to_localSpace = this.transform.InverseTransformPoint(forceOrigin);
         collisionPoint = forceOrigin_to_localSpace;
 
@@ -49,7 +57,7 @@ public class Deformer : MonoBehaviour
     {
         Vector3 vertex = deformedVertices[vertexIndex];
 
-        float distance = Vector3.Distance(vertex, forceOrigin);                 // The distance from the force origin to the vertex
+        float distance = Vector3.Distance(this.transform.InverseTransformPoint(vertex), this.transform.InverseTransformPoint(forceOrigin));                 // The distance from the force origin to the vertex
         float forceAtVertex = force / (meshStrength + (distance * distance));   // The force at that vertex according to inverse square law
         Vector3 originToVertex_Vector = vertex - forceOrigin;                   // Get the vector we are going to be moving the vertex along
 
@@ -61,5 +69,19 @@ public class Deformer : MonoBehaviour
     public void UpdateVertex(int vertexIndex)
     {
         deformedVertices[vertexIndex] += vertexVelocities[vertexIndex] * Time.deltaTime;
+    }
+
+    // Gizmos for debug
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.red;
+
+        Gizmos.DrawSphere(transform.TransformPoint(collisionPoint), 0.01f);
+
+        Gizmos.color = Color.green;
+        Gizmos.DrawSphere(transform.TransformPoint(deformedVertices[3000]), 0.01f);
+
+        Gizmos.color = Color.white;
+        Gizmos.DrawSphere(transform.TransformPoint(deformedVertices[5500]), 0.01f);
     }
 }

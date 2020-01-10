@@ -78,6 +78,7 @@
     <Compile Include="Assets\UnderlyingMeshCollision.cs" />
     <None Include="Assets\Rounded Cube Grid.shader" />
     <None Include="Assets\Scripts\IO\Log.txt" />
+    <None Include="Assets\Shaders\Hologram.shader" />
     <Reference Include="Unity.Timeline.Editor">
       <HintPath>C:/Users/mandh/Mesh Deformation/Library/ScriptAssemblies/Unity.Timeline.Editor.dll</HintPath>
     </Reference>
