@@ -118,7 +118,7 @@ public class MeshDeformer : MonoBehaviour
         }
     }
 
-    void OnDrawGizmos()
+    /*void OnDrawGizmos()
     {
         Gizmos.color = Color.blue;
         Handles.color = Color.blue;
@@ -130,6 +130,6 @@ public class MeshDeformer : MonoBehaviour
 
         Gizmos.color = Color.white;
         Gizmos.DrawSphere(transform.TransformPoint(displacedVertices[5500]), 0.01f);
-    }
+    }*/
 }
 

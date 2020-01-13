@@ -1,0 +1,37 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+RWTexture2D<float4> Result;
+float forceAmount;
+float meshStrength;
+vector forceOrigin;
+float time;
+float vertexMass;
+RWStructuredBuffer<vector> vertices;
+RWStructuredBuffer<vector> velocities;
+RWStructuredBuffer<vector> testVector;
+uint numberOfVertices;
+
+[numthreads(3, 3, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    // TODO: insert actual code here!
+    float numerator = 0.5;
+
+    for (uint i = 0; i < numberOfVertices; i++)
+    {
+        vector vertex = vertices[i];
+        float distance_ContactPointToVertex = distance(forceOrigin, vertex);
+        float forceAtVertex = forceAmount / (meshStrength + (distance_ContactPointToVertex * distance_ContactPointToVertex));
+        vector contactPointToVertex_Vector = vertex - forceOrigin;
+        
+        float vertexVelocity = normalize(contactPointToVertex_Vector) * ((forceAtVertex / vertexMass) * time);
+        velocities[i] = vertexVelocity * 25;
+    }
+    
+    testVector[0] = vector(99.0, 99.0, 99.0, 0);
+        
+    //Result[id.xy] = float4(1, 1, 1, 0.0);
+}

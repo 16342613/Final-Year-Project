@@ -12,7 +12,7 @@ public class MeshDeformerInput : MonoBehaviour
 
     }
 
-    void Update()
+    void FixedUpdate()
     {
         if (Input.GetMouseButton(0))
         {
@@ -46,6 +46,8 @@ public class MeshDeformerInput : MonoBehaviour
                 point += hit.normal * forceOffset;
                 //deformer.AddDeformingForce(point, force);
                 deformer.RespondToForce(point, force);
+
+                //Debug.Log("Input's point: " + point);
             }
         }
     }
