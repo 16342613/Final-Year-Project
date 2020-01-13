@@ -11,6 +11,7 @@ public class Deformer : MonoBehaviour
     private Vector3[] deformedVertices;
     private Vector3[] originalVertices;
     private Vector3[] vertexVelocities;
+    private ContactPoint[] contactPoints;
 
     public float meshStrength = 1f;
     public float vertexMass = 1f;
@@ -46,6 +47,11 @@ public class Deformer : MonoBehaviour
     void FixedUpdate()
     {
         uniformScale = this.transform.localScale.x;
+
+        for (int i = 0; i < contactPoints.Length; i++)
+        {
+            RespondToForce(contactPoints[i].point, 20);
+        }
 
         for (int i = 0; i < deformedVertices.Length; i++)
         {
@@ -125,7 +131,6 @@ public class Deformer : MonoBehaviour
         Vector3 forceOrigin_to_localSpace = this.transform.InverseTransformPoint(forceOrigin);
         collisionPoint = forceOrigin_to_localSpace;
 
-
         for (int i = 0; i < deformedVertices.Length; i++)
         {
             CalculateVertexVelocity(i, forceOrigin_to_localSpace, force);
@@ -173,4 +178,9 @@ public class Deformer : MonoBehaviour
         Gizmos.color = Color.white;
         Gizmos.DrawSphere(transform.TransformPoint(deformedVertices[5500]), 0.01f);
     }*/
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        contactPoints = collision.contacts;
+    }
 }
