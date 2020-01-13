@@ -125,7 +125,6 @@ public class Deformer : MonoBehaviour
         Vector3 forceOrigin_to_localSpace = this.transform.InverseTransformPoint(forceOrigin);
         collisionPoint = forceOrigin_to_localSpace;
 
-        //Debug.Log("Hit: " + collisionPoint);
 
         for (int i = 0; i < deformedVertices.Length; i++)
         {
@@ -135,21 +134,18 @@ public class Deformer : MonoBehaviour
 
     public void CalculateVertexVelocity(int vertexIndex, Vector3 forceOrigin, float force)
     {
-        Vector3 vertex = deformedVertices[vertexIndex];
+        forceOrigin = (forceOrigin);
+        Vector3 vertex = (deformedVertices[vertexIndex]);
 
         float distance = Vector3.Distance(vertex, forceOrigin);                 // The distance from the force origin to the vertex
+
+        //if (distance > 0.5f) return;
 
         float forceAtVertex = force / (meshStrength + 5 * (distance * distance));   // The force at that vertex according to inverse square law
 
         float vertexAcceleration = forceAtVertex / vertexMass;                              // From F = ma
         vertexVelocities[vertexIndex] = (vertex - forceOrigin).normalized * (vertexAcceleration * Time.deltaTime);  // The velocity of the vertex along the vertex path vector
 
-        // NOTE: ISSUE IS THAT THE LOCAL Z AXIS VALUE IS EXAGERRATED
-
-        if (vertexIndex == 3000)
-        {
-            Debug.Log("Vertex: " + deformedVertices[3000] + "; Hit: " + forceOrigin + "; distance: " + distance+ "; forceAtVertex: " + forceAtVertex + "; vertexAcceleration: " + vertexAcceleration);
-        }
     }
 
     public void UpdateVertex(int vertexIndex)
@@ -162,13 +158,13 @@ public class Deformer : MonoBehaviour
         vertexVelocities[vertexIndex] = velocity;
 
         deformedVertices[vertexIndex] += vertexVelocities[vertexIndex] * Time.deltaTime;
+        //deformedVertices[vertexIndex] += new Vector3(vertexVelocities[vertexIndex].x * 0.1f, vertexVelocities[vertexIndex].y * 0.1f, vertexVelocities[vertexIndex].y * 10) * Time.deltaTime;
     }
 
     // Gizmos for debug
-    private void OnDrawGizmos()
+    /*private void OnDrawGizmos()
     {
         Gizmos.color = Color.red;
-
         Gizmos.DrawSphere(transform.TransformPoint(collisionPoint), 0.01f);
 
         Gizmos.color = Color.green;
@@ -176,5 +172,5 @@ public class Deformer : MonoBehaviour
 
         Gizmos.color = Color.white;
         Gizmos.DrawSphere(transform.TransformPoint(deformedVertices[5500]), 0.01f);
-    }
+    }*/
 }
