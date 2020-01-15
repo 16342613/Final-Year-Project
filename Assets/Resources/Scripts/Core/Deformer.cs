@@ -11,7 +11,7 @@ public class Deformer : MonoBehaviour
     private Vector3[] deformedVertices;
     private Vector3[] originalVertices;
     private Vector3[] vertexVelocities;
-    private ContactPoint[] contactPoints;
+    private ContactPoint[] contactPoints = new ContactPoint[0];
 
     public float meshStrength = 1f;
     public float vertexMass = 1f;
@@ -20,7 +20,7 @@ public class Deformer : MonoBehaviour
     private float uniformScale = 1f;
 
     // Currently for debug only
-    private Vector3 collisionPoint;
+    private Vector3 collisionPoint = Vector3.zero;
     private int computeInt = 0;
     public RenderTexture result;
     public Texture2D texture;
@@ -30,6 +30,9 @@ public class Deformer : MonoBehaviour
     private Vector3[] test = new Vector3[] { Vector3.one };
     private Vector3[] shaderVertices;
     private Vector3[] shaderVertexVelocities;
+
+    private Vector3 offsetPoint;
+    private Vector3 offsetCollision;
 
     void Start()
     {
@@ -139,18 +142,29 @@ public class Deformer : MonoBehaviour
 
     public void CalculateVertexVelocity(int vertexIndex, Vector3 forceOrigin, float force)
     {
-        forceOrigin = (forceOrigin);
-        Vector3 vertex = (deformedVertices[vertexIndex]);
+        Vector3 vertex = deformedVertices[vertexIndex];
 
         float distance = Vector3.Distance(vertex, forceOrigin);                 // The distance from the force origin to the vertex
+        RaycastHit hit;
+
+        /*if (vertexIndex == 0)
+        {
+            offsetPoint = deformedVertices[0] + ((vertex - forceOrigin) * 0.01f);
+            offsetCollision = forceOrigin - (vertex - forceOrigin) * 0.1f;
+        }*/
+
+        //if (Physics.Linecast(Camera.main.transform.TransformPoint(Camera.main.transform.position), transform.TransformPoint(vertex + ((vertex - forceOrigin) * 0.01f))) == true)
+        {
+            //return;
+        }
 
         //if (distance > 0.5f) return;
 
         float forceAtVertex = force / (meshStrength + 5 * (distance * distance));   // The force at that vertex according to inverse square law
 
+
         float vertexAcceleration = forceAtVertex / vertexMass;                              // From F = ma
         vertexVelocities[vertexIndex] = (vertex - forceOrigin).normalized * (vertexAcceleration * Time.deltaTime);  // The velocity of the vertex along the vertex path vector
-
     }
 
     public void UpdateVertex(int vertexIndex)
@@ -163,21 +177,27 @@ public class Deformer : MonoBehaviour
         vertexVelocities[vertexIndex] = velocity;
 
         deformedVertices[vertexIndex] += vertexVelocities[vertexIndex] * Time.deltaTime;
-        //deformedVertices[vertexIndex] += new Vector3(vertexVelocities[vertexIndex].x * 0.1f, vertexVelocities[vertexIndex].y * 0.1f, vertexVelocities[vertexIndex].y * 10) * Time.deltaTime;
     }
 
     // Gizmos for debug
-    /*private void OnDrawGizmos()
+    private void OnDrawGizmos()
     {
         Gizmos.color = Color.red;
-        Gizmos.DrawSphere(transform.TransformPoint(collisionPoint), 0.01f);
+        for (int i = 0; i < contactPoints.Length; i++)
+        {
+            Gizmos.DrawSphere(transform.TransformPoint(contactPoints[i].point), 0.01f);
+        }
+        //Gizmos.DrawSphere(transform.TransformPoint(collisionPoint), 0.01f);
+        //Gizmos.DrawSphere(transform.TransformPoint(offsetCollision), 0.01f);
 
         Gizmos.color = Color.green;
-        Gizmos.DrawSphere(transform.TransformPoint(deformedVertices[3000]), 0.01f);
+        //Gizmos.DrawSphere(transform.TransformPoint(offsetPoint), 0.01f);
+        //Gizmos.DrawSphere(transform.TransformPoint(deformedVertices[3000]), 0.01f);
 
         Gizmos.color = Color.white;
-        Gizmos.DrawSphere(transform.TransformPoint(deformedVertices[5500]), 0.01f);
-    }*/
+        //Gizmos.DrawLine(transform.TransformPoint(offsetCollision), transform.TransformPoint(offsetPoint));
+        //Gizmos.DrawSphere(transform.TransformPoint(deformedVertices[5500]), 0.01f);
+    }
 
     private void OnCollisionEnter(Collision collision)
     {

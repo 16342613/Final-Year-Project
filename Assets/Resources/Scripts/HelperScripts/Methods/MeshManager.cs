@@ -56,9 +56,9 @@ namespace HelperScripts.Methods
                     }
 
                     // Loop through each vertex in the triangle again to add the appropriate vertices to the connected list
-                    for(int k=0; k<3; k++)
+                    for (int k = 0; k < 3; k++)
                     {
-                        if((triangleDetails[i][j] != triangleDetails[i][k]) && (connectedVertices[triangleDetails[i][j]].Contains(triangleDetails[i][k]) == false))
+                        if ((triangleDetails[i][j] != triangleDetails[i][k]) && (connectedVertices[triangleDetails[i][j]].Contains(triangleDetails[i][k]) == false))
                         {
                             connectedVertices[triangleDetails[i][j]].Add(triangleDetails[i][k]);
                         }
@@ -68,6 +68,47 @@ namespace HelperScripts.Methods
 
             return connectedVertices;
         }
+
+        public Vector3 GetClosestVertexToPoint(Vector3 queryPoint, bool convertToLocalSpace = false, Transform objectTransform = null)
+        {
+            float shortestDistance = 99;
+            Vector3 closestVertex = vertices[0];
+
+            if (convertToLocalSpace == true)
+            {
+                if (objectTransform == null) throw new System.Exception("ERROR: Transform can't be null!");
+
+                closestVertex = objectTransform.InverseTransformPoint(queryPoint);
+            }
+
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                float distance = Vector3.Distance(queryPoint, vertices[i]);
+
+                if (distance < shortestDistance)
+                {
+                    shortestDistance = distance;
+                    closestVertex = vertices[i];
+                }
+            }
+
+            return closestVertex;
+        }
+
+        /*public List<Vector3> GetMeshCorners()
+        {
+            Vector3 maxHeight = queryMesh.bounds.center;  // 0
+            Vector3 maxDepth = queryMesh.bounds.center;   // 1
+            Vector3 maxNorth = queryMesh.bounds.center;   // 2
+            Vector3 maxSouth = queryMesh.bounds.center;   // 3
+            Vector3 maxEast = queryMesh.bounds.center;    // 4
+            Vector3 maxWest = queryMesh.bounds.center;    // 5
+
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                
+            }
+        }*/
 
         public List<Vector3> GetVertexPath(Vector3 startVertex, Vector3 targetVertex)
         {

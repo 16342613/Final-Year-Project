@@ -35,9 +35,9 @@ public class BoundingVolumeHierarchy : MonoBehaviour
         triangles = mesh.triangles;
         objectMeshColliderLayer = LayerMask.NameToLayer("ObjectMeshCollider");
 
-        //ClearOldBVH();
+        ClearOldBVH();
         //ApplyBVH();
-        //ApplyVertexColliders();
+        ApplyVertexColliders();
 
         //DebugHelper.PrintArray(vertices.ToList().Cast<object>().ToArray(), true);
         //DebugHelper.PrintArray(triangles.ToList().Cast<object>().ToArray());
@@ -111,7 +111,6 @@ public class BoundingVolumeHierarchy : MonoBehaviour
         meshChild.name = "Mesh Collider Container";
         meshChild.layer = objectMeshColliderLayer;
         objectMeshCollider = meshChild.AddComponent<MeshCollider>();
-        meshChild.AddComponent<UnderlyingMeshCollision>();
         objectMeshCollider.sharedMesh = gameObject.GetComponent<MeshFilter>().sharedMesh;
         objectMeshCollider.transform.position = transform.position;
         objectMeshCollider.transform.rotation = transform.rotation;
