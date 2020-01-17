@@ -95,6 +95,22 @@ namespace HelperScripts.Methods
             return closestVertex;
         }
 
+        /// <summary>
+        /// Gets vertices of the top layer of the mesh.
+        /// This is ideal when you want to use a plane as a mesh,
+        /// but backface culling prevents the plane from being rendered
+        /// so you have to use a box instead. We only need to consider
+        /// the vertices on the top of the mesh, and we can copy their
+        /// movements for the bottom of the mesh.
+        /// </summary>
+        /// <returns></returns>
+        public List<int> GetTopVertices()
+        {
+            List<int> topVertexIndexes = new List<int>();
+
+            return topVertexIndexes;
+        }
+
         /*public List<Vector3> GetMeshCorners()
         {
             Vector3 maxHeight = queryMesh.bounds.center;  // 0
@@ -109,6 +125,11 @@ namespace HelperScripts.Methods
                 
             }
         }*/
+
+        public List<int> GetMeshEdgeVertices()
+        {
+            return null;
+        }
 
         public List<Vector3> GetVertexPath(Vector3 startVertex, Vector3 targetVertex)
         {

@@ -56,7 +56,7 @@ public class BonnetDeform : MonoBehaviour
 
         if(collided == false)
         {
-            Debug.Log(objectDirection);
+            //Debug.Log(objectDirection);
         }
     }
 
@@ -75,7 +75,7 @@ public class BonnetDeform : MonoBehaviour
         //Gizmos.DrawSphere(transform.TransformPoint(connectedVertices.ElementAt(vertexToCheck).Key), 0.005f);
 
         Gizmos.color = Color.green;
-        Gizmos.DrawSphere(transform.TransformPoint(weakestVertex), 0.01f);
+        //Gizmos.DrawSphere(transform.TransformPoint(weakestVertex), 0.01f);
         //for (int i = 0; i < connectedVertices.ElementAt(vertexToCheck).Value.Count; i++)
         //{
             //Gizmos.DrawSphere(transform.TransformPoint(connectedVertices.ElementAt(vertexToCheck).Value[i]), 0.005f);

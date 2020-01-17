@@ -18,6 +18,6 @@ public class BonnetAssemblyScript : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        rigidBody.AddForce(1, 0, 0);
+        //rigidBody.AddForce(1, 0, 0);
     }
 }

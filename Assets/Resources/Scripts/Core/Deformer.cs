@@ -1,22 +1,29 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+using System.Linq;
 
 public class Deformer : MonoBehaviour
 {
+    private ObjectProperties objectProperties;
+
     private Renderer objectRenderer;
     private ComputeShader computeShader;
     private Mesh deformedMesh;
     private Vector3[] deformedVertices;
     private Vector3[] originalVertices;
     private Vector3[] vertexVelocities;
-    private ContactPoint[] contactPoints = new ContactPoint[0];
+    private float[] maxVertexDisplacement;
+    private bool newCollisionsDetected;
+    private List<ContactPoint> contactPoints = new List<ContactPoint>();
 
     public float meshStrength = 1f;
     public float vertexMass = 1f;
     public float springForce = 20f;
     public float damping = 5f;
+    public bool returnToRestingForm = false;
     private float uniformScale = 1f;
 
     // Currently for debug only
@@ -45,15 +52,17 @@ public class Deformer : MonoBehaviour
         computeShader = (ComputeShader)Resources.Load("Shaders/DeformationShader");
         //TestComputeShader();
         //objectRenderer.material.SetFloat("_Test", 1.0f);
+
+        maxVertexDisplacement = new float[originalVertices.Length];
     }
 
     void FixedUpdate()
     {
         uniformScale = this.transform.localScale.x;
 
-        for (int i = 0; i < contactPoints.Length; i++)
+        for (int i = 0; i < contactPoints.Count; i++)
         {
-            RespondToForce(contactPoints[i].point, 20);
+            RespondToForce(contactPoints[i].point, 2);
         }
 
         for (int i = 0; i < deformedVertices.Length; i++)
@@ -63,6 +72,8 @@ public class Deformer : MonoBehaviour
 
         deformedMesh.vertices = deformedVertices;
         deformedMesh.RecalculateNormals();
+
+        Debug.Log(contactPoints.Count);
     }
 
     int TestComputeShader()
@@ -145,7 +156,6 @@ public class Deformer : MonoBehaviour
         Vector3 vertex = deformedVertices[vertexIndex];
 
         float distance = Vector3.Distance(vertex, forceOrigin);                 // The distance from the force origin to the vertex
-        RaycastHit hit;
 
         /*if (vertexIndex == 0)
         {
@@ -158,7 +168,7 @@ public class Deformer : MonoBehaviour
             //return;
         }
 
-        //if (distance > 0.5f) return;
+        if (distance > 0.5f) return;
 
         float forceAtVertex = force / (meshStrength + 5 * (distance * distance));   // The force at that vertex according to inverse square law
 
@@ -170,10 +180,35 @@ public class Deformer : MonoBehaviour
     public void UpdateVertex(int vertexIndex)
     {
         Vector3 velocity = vertexVelocities[vertexIndex];
+
+        if (returnToRestingForm == true && velocity == Vector3.zero)
+        {
+            deformedVertices[vertexIndex] = originalVertices[vertexIndex];
+            return;
+        }
+
+        if (velocity.magnitude < 0.00001f)
+        {
+            vertexVelocities[vertexIndex] = Vector3.zero;
+            return;
+        }
+
         Vector3 displacement = deformedVertices[vertexIndex] - originalVertices[vertexIndex];
         displacement *= uniformScale;
-        velocity -= displacement * springForce * Time.deltaTime;
+
+        if (displacement.magnitude > maxVertexDisplacement[vertexIndex])
+        {
+            maxVertexDisplacement[vertexIndex] = displacement.magnitude;
+        }
+        else if (displacement.magnitude < maxVertexDisplacement[vertexIndex] && returnToRestingForm == false)
+        {
+            return;
+        }
+
+        Vector3 reboundVelocity = displacement * springForce * Time.deltaTime;
+        velocity = velocity - reboundVelocity;
         velocity *= 1f - damping * Time.deltaTime;
+
         vertexVelocities[vertexIndex] = velocity;
 
         deformedVertices[vertexIndex] += vertexVelocities[vertexIndex] * Time.deltaTime;
@@ -183,9 +218,9 @@ public class Deformer : MonoBehaviour
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.red;
-        for (int i = 0; i < contactPoints.Length; i++)
+        for (int i = 0; i < contactPoints.Count; i++)
         {
-            Gizmos.DrawSphere(transform.TransformPoint(contactPoints[i].point), 0.01f);
+            Gizmos.DrawSphere((contactPoints[i].point), 0.01f);
         }
         //Gizmos.DrawSphere(transform.TransformPoint(collisionPoint), 0.01f);
         //Gizmos.DrawSphere(transform.TransformPoint(offsetCollision), 0.01f);
@@ -199,8 +234,16 @@ public class Deformer : MonoBehaviour
         //Gizmos.DrawSphere(transform.TransformPoint(deformedVertices[5500]), 0.01f);
     }
 
-    private void OnCollisionEnter(Collision collision)
+    private void OnCollisionStay(Collision collision)
     {
-        contactPoints = collision.contacts;
+        for (int i = 0; i < collision.contactCount; i++)
+        {
+            if (contactPoints.Contains(collision.contacts[i]) == false)
+            {
+                contactPoints.Add(collision.contacts[i]);
+            }
+        }
+
+        contactPoints = collision.contacts.ToList();
     }
 }
