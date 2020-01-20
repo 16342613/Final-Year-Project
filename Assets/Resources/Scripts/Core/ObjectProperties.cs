@@ -9,7 +9,7 @@ public class ObjectProperties : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        uniqueID = Random.Range(0, 10000);
+        uniqueID = Random.Range(0, 1023);
     }
 
     public int GetUniqueID()
