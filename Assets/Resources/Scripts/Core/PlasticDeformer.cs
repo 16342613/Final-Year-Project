@@ -19,6 +19,7 @@ public class PlasticDeformer : Deformer
     public float damping = 5f;
     public bool returnToRestingForm = false;
     private float uniformScale = 1f;
+    private int frameCount = 0;
 
     void Start()
     {
@@ -37,28 +38,29 @@ public class PlasticDeformer : Deformer
 
     void FixedUpdate()
     {
-        ParseContactPoints();
+        frameCount++;
+
+        if (frameCount % 3 == 0)
+        {
+            ParseContactPoints();
+            frameCount = 0;
+        }
 
         uniformScale = this.transform.localScale.x;
 
-        for (int i = 0; i < contactPoints.Count; i++)
+        for (int i = 0; i < contactDetails.Count; i++)
         {
-            RespondToForce(contactPoints[i], 2);
+            RespondToForce(contactDetails.ElementAt(i).Value, 2);//contactDetails.ElementAt(i).Key);
         }
 
         deformedMesh.vertices = deformedVertices;
         deformedMesh.RecalculateNormals();
-
-        Debug.Log(contactPoints.Count);
     }
 
     public void RespondToForce(Vector3 forceOrigin, float force)
     {
-        //Vector3 forceOrigin_to_localSpace = this.transform.InverseTransformPoint(forceOrigin);
-
         for (int i = 0; i < deformedVertices.Length; i++)
         {
-            //PlasticDeformVertex(i, forceOrigin_to_localSpace, force);
             PlasticDeformVertex(i, forceOrigin, force);
         }
     }
@@ -71,28 +73,25 @@ public class PlasticDeformer : Deformer
 
         if (distance > 0.5f) return;
 
-        float forceAtVertex = force / (meshStrength + 5 * (distance * distance));  
-        float vertexAcceleration = forceAtVertex / vertexMass;                       
+        float forceAtVertex = force / (meshStrength + 5 * (distance * distance));
+        float vertexAcceleration = forceAtVertex / vertexMass;
         vertexVelocities[vertexIndex] = (vertex - forceOrigin).normalized * (vertexAcceleration);
 
         Vector3 displacement = deformedVertices[vertexIndex] - originalVertices[vertexIndex];
         displacement *= uniformScale;
 
-        if (displacement.magnitude > maxVertexDisplacement[vertexIndex])
+        Vector3 reboundVelocity = displacement * springForce;
+
+        if (vertexIndex == 3000) Debug.Log(reboundVelocity.magnitude - vertexVelocities[3000].magnitude);
+
+        /*if (displacement.magnitude > maxVertexDisplacement[vertexIndex])
         {
             maxVertexDisplacement[vertexIndex] = displacement.magnitude;
         }
         else if (displacement.magnitude < maxVertexDisplacement[vertexIndex] && returnToRestingForm == false)
         {
             return;
-        }
-
-        Vector3 reboundVelocity = displacement * springForce;
-
-        if (vertexIndex == 3000)
-        {
-            //Debug.Log("Vel: " + vertexVelocities[vertexIndex].magnitude + " ; Reb: " + reboundVelocity.magnitude);
-        }
+        }*/
 
         vertexVelocities[vertexIndex] -= reboundVelocity;
         vertexVelocities[vertexIndex] *= 1f - damping * Time.deltaTime;
@@ -107,12 +106,13 @@ public class PlasticDeformer : Deformer
         {
             Gizmos.DrawSphere(transform.TransformPoint(contactPoints[i]), 0.01f);
         }
+
         //Gizmos.DrawSphere(transform.TransformPoint(collisionPoint), 0.01f);
         //Gizmos.DrawSphere(transform.TransformPoint(offsetCollision), 0.01f);
 
         Gizmos.color = Color.green;
         //Gizmos.DrawSphere(transform.TransformPoint(offsetPoint), 0.01f);
-        //Gizmos.DrawSphere(transform.TransformPoint(deformedVertices[3000]), 0.01f);
+        Gizmos.DrawSphere(transform.TransformPoint(deformedVertices[3000]), 0.01f);
 
         Gizmos.color = Color.white;
         //Gizmos.DrawLine(transform.TransformPoint(offsetCollision), transform.TransformPoint(offsetPoint));
