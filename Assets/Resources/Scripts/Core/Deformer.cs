@@ -11,11 +11,35 @@ public class Deformer : MonoBehaviour
     protected Vector3[] vertexVelocities;
     protected List<Vector3> contactPoints = new List<Vector3>();
     protected Dictionary<float, Vector3> contactDetails = new Dictionary<float, Vector3>();
-
+    
     [HideInInspector]
     public Dictionary<GameObject, ContactPoint[]> contactInfo = new Dictionary<GameObject, ContactPoint[]>();
     [HideInInspector]
     public Dictionary<GameObject, float> collisionInfo = new Dictionary<GameObject, float>();
+
+    public struct Vertex
+    {
+        public Vector3 position;
+        public Vector3 velocity;
+        public float maxDisplacement;
+
+        public Vertex(Vector3 position) : this()
+        {
+            this.position = position;
+        }
+    }
+
+    public struct Force
+    {
+        public float forceAmount;
+        public Vector3 forceOrigin;
+
+        public Force(float forceAmount, Vector3 forceOrigin) : this()
+        {
+            this.forceAmount = forceAmount;
+            this.forceOrigin = forceOrigin;
+        }
+    }
 
     private float collisionProximitySimilarity = 1f;
 

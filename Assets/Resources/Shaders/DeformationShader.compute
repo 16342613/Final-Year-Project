@@ -1,37 +1,52 @@
 ﻿// Each #kernel tells which function to compile; you can have many kernels
-#pragma kernel CSMain
+#pragma kernel CalculateDistance
 
 // Create a RenderTexture with enableRandomWrite flag and set it
 // with cs.SetTexture
-RWTexture2D<float4> Result;
+
+RWStructuredBuffer<vector> originalVertexBuffer;
+RWStructuredBuffer<vector> vertexBuffer;
+RWStructuredBuffer<vector> vertexVelocitiesBuffer;
 float forceAmount;
-float meshStrength;
 vector forceOrigin;
-float time;
+float meshStrength;
 float vertexMass;
-RWStructuredBuffer<vector> vertices;
-RWStructuredBuffer<vector> velocities;
-RWStructuredBuffer<vector> testVector;
-uint numberOfVertices;
+int vertexCount;
+float uniformScale;
+float springForce;
+float damping;
+float time;
 
-[numthreads(3, 3, 1)]
-void CSMain(uint3 id : SV_DispatchThreadID)
+[numthreads(1, 1, 1)]
+void CalculateDistance(uint3 id : SV_DispatchThreadID)
 {
-    // TODO: insert actual code here!
-    float numerator = 0.5;
-
-    for (uint i = 0; i < numberOfVertices; i++)
+    if(id.x < vertexCount) 
     {
-        vector vertex = vertices[i];
-        float distance_ContactPointToVertex = distance(forceOrigin, vertex);
-        float forceAtVertex = forceAmount / (meshStrength + (distance_ContactPointToVertex * distance_ContactPointToVertex));
-        vector contactPointToVertex_Vector = vertex - forceOrigin;
-        
-        float vertexVelocity = normalize(contactPointToVertex_Vector) * ((forceAtVertex / vertexMass) * time);
-        velocities[i] = vertexVelocity * 25;
+        originalVertexBuffer[id.x].w = 0;
+        forceOrigin.w = 0;
+        vertexBuffer[id.x].w = 0;
+
+        float distanceFromForce = sqrt(((vertexBuffer[id.x].x - forceOrigin.x) * (vertexBuffer[id.x].x - forceOrigin.x))
+                                    + ((vertexBuffer[id.x].y - forceOrigin.y) * (vertexBuffer[id.x].y - forceOrigin.y))
+                                    + ((vertexBuffer[id.x].z - forceOrigin.z) * (vertexBuffer[id.x].z - forceOrigin.z)));
+                                
+        if (distanceFromForce > 0.5) 
+        {
+            return;
+        }
+
+        float forceAtVertex = forceAmount / (meshStrength + 5 * (distanceFromForce * distanceFromForce));
+        float vertexAcceleration = forceAtVertex / vertexMass;
+        vertexVelocitiesBuffer[id.x] = normalize(vertexBuffer[id.x] - forceOrigin) * vertexAcceleration;
+
+        vector displacement = originalVertexBuffer[id.x] - vertexBuffer[id.x];
+        displacement = displacement * uniformScale;
+
+        vector reboundVelocity = displacement * springForce;
+
+        vertexVelocitiesBuffer[id.x] = vertexVelocitiesBuffer[id.x] - reboundVelocity;
+        vertexVelocitiesBuffer[id.x] = vertexVelocitiesBuffer[id.x] * (1 - damping * time);
+
+        //vertexBuffer[id.x] = vertexBuffer[id.x] + (vertexVelocitiesBuffer[id.x] * time);
     }
-    
-    testVector[0] = vector(99.0, 99.0, 99.0, 0);
-        
-    //Result[id.xy] = float4(1, 1, 1, 0.0);
 }
