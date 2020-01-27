@@ -9,6 +9,7 @@ public class Deformer : MonoBehaviour
     protected Vector3[] deformedVertices;
     protected Vector3[] originalVertices;
     protected Vector3[] vertexVelocities;
+    protected Vector3[] latestForceOrigin;
     protected List<Vector3> contactPoints = new List<Vector3>();
     protected Dictionary<float, Vector3> contactDetails = new Dictionary<float, Vector3>();
     

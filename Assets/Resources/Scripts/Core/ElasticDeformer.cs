@@ -16,7 +16,6 @@ public class ElasticDeformer : MonoBehaviour
     private Vector3[] originalVertices;
     private Vector3[] vertexVelocities;
     private float[] maxVertexDisplacement;
-    private bool newCollisionsDetected;
     private List<ContactPoint> contactPoints = new List<ContactPoint>();
 
     public float meshStrength = 1f;
@@ -28,7 +27,6 @@ public class ElasticDeformer : MonoBehaviour
 
     // Currently for debug only
     private Vector3 collisionPoint = Vector3.zero;
-    private int computeInt = 0;
     public RenderTexture result;
     public Texture2D texture;
     private ComputeBuffer vertexBuffer;
