@@ -1,14 +1,20 @@
-﻿// Each #kernel tells which function to compile; you can have many kernels
-#pragma kernel CalculateDistance
+﻿struct VertexData
+{
+    float3 originalVertexPosition;
+    float3 vertexPosition;
+    float3 vertexVelocity;
+    
+    float3 dummy1;
+    float3 dummy2;
+    float dummy3;
+};
 
-// Create a RenderTexture with enableRandomWrite flag and set it
-// with cs.SetTexture
-
-RWStructuredBuffer<vector> originalVertexBuffer;
-RWStructuredBuffer<vector> vertexBuffer;
-RWStructuredBuffer<vector> vertexVelocitiesBuffer;
+RWStructuredBuffer<float3> originalVertexBuffer;
+RWStructuredBuffer<float3> vertexBuffer;
+RWStructuredBuffer<float3> vertexVelocitiesBuffer;
+RWStructuredBuffer<float3> debugBuffer;
 float forceAmount;
-vector forceOrigin;
+float3 forceOrigin;
 float meshStrength;
 float vertexMass;
 int vertexCount;
@@ -16,37 +22,61 @@ float uniformScale;
 float springForce;
 float damping;
 float time;
+RWStructuredBuffer<VertexData> vertexData;
+int sideCount;
+VertexData vertices[255][255];
 
+#pragma kernel AssignThreads
 [numthreads(1, 1, 1)]
-void CalculateDistance(uint3 id : SV_DispatchThreadID)
+void AssignThreads(uint3 id : SV_DispatchThreadID)
 {
-    if(id.x < vertexCount) 
+    float squareRoot = sqrt(vertexCount);
+    int rounded = round(squareRoot);
+    int index = 0;
+    
+    if ((squareRoot - rounded) > 0)
     {
-        originalVertexBuffer[id.x].w = 0;
-        forceOrigin.w = 0;
-        vertexBuffer[id.x].w = 0;
-
-        float distanceFromForce = sqrt(((vertexBuffer[id.x].x - forceOrigin.x) * (vertexBuffer[id.x].x - forceOrigin.x))
-                                    + ((vertexBuffer[id.x].y - forceOrigin.y) * (vertexBuffer[id.x].y - forceOrigin.y))
-                                    + ((vertexBuffer[id.x].z - forceOrigin.z) * (vertexBuffer[id.x].z - forceOrigin.z)));
-                                
-        if (distanceFromForce > 0.5) 
+        rounded = rounded + 1;
+    }
+    
+    for (int i = 0; i < 1; i++)
+    {
+        for (int j = 0; j < 1; j++)
         {
-            return;
+            if (index < vertexCount)
+            {
+                //vertices[i][j] = vertexData[index];
+                index = index + 1;
+            }
         }
-
-        float forceAtVertex = forceAmount / (meshStrength + 5 * (distanceFromForce * distanceFromForce));
-        float vertexAcceleration = forceAtVertex / vertexMass;
-        vertexVelocitiesBuffer[id.x] = normalize(vertexBuffer[id.x] - forceOrigin) * vertexAcceleration;
-
-        vector displacement = originalVertexBuffer[id.x] - vertexBuffer[id.x];
-        displacement = displacement * uniformScale;
-
-        vector reboundVelocity = displacement * springForce;
-
-        vertexVelocitiesBuffer[id.x] = vertexVelocitiesBuffer[id.x] - reboundVelocity;
-        vertexVelocitiesBuffer[id.x] = vertexVelocitiesBuffer[id.x] * (1 - damping * time);
-
-        //vertexBuffer[id.x] = vertexBuffer[id.x] + (vertexVelocitiesBuffer[id.x] * time);
     }
 }
+
+#pragma kernel DeformVertex
+[numthreads(1, 1, 1)]
+void DeformVertex(uint3 id : SV_DispatchThreadID)
+{
+    float distanceFromForce = sqrt(((vertexBuffer[id.x].x - forceOrigin.x) * (vertexBuffer[id.x].x - forceOrigin.x))
+                                    + ((vertexBuffer[id.x].y - forceOrigin.y) * (vertexBuffer[id.x].y - forceOrigin.y))
+                                    + ((vertexBuffer[id.x].z - forceOrigin.z) * (vertexBuffer[id.x].z - forceOrigin.z)));
+        
+    if (distanceFromForce > 0.5)
+    {
+        return;
+    }
+        
+    float forceAtVertex = forceAmount / (meshStrength + 5 * (distanceFromForce * distanceFromForce));
+    float vertexAcceleration = forceAtVertex / vertexMass;
+    vertexVelocitiesBuffer[id.x] = normalize(vertexBuffer[id.x] - forceOrigin) * vertexAcceleration;
+        
+    float3 displacement = originalVertexBuffer[id.x] - vertexBuffer[id.x];
+    displacement = displacement * uniformScale;
+        
+    float3 reboundVelocity = displacement * springForce;
+        
+    vertexVelocitiesBuffer[id.x] = vertexVelocitiesBuffer[id.x] + reboundVelocity;
+    vertexVelocitiesBuffer[id.x] = vertexVelocitiesBuffer[id.x] * (1 - damping * time);
+        
+    vertexBuffer[id.x] = vertexBuffer[id.x] + (vertexVelocitiesBuffer[id.x] * time);
+}
+
