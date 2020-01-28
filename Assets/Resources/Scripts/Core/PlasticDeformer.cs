@@ -78,7 +78,7 @@ public class PlasticDeformer : Deformer
 
         vertices = new VertexData[deformedMesh.vertices.Length];
 
-        ComputeShaderSetup();
+        //ComputeShaderSetup();
     }
 
     private void ComputeShaderSetup()
@@ -126,10 +126,10 @@ public class PlasticDeformer : Deformer
 
         wrongPoints.Clear();
 
-        //TestGPU(forceOrigin, forceAmount);
+        TestGPU(forceOrigin, forceAmount);
         for (int i = 0; i < deformedVertices.Length; i++)
         {
-            PlasticDeformVertex(i, forceOrigin, forceAmount);
+            //PlasticDeformVertex(i, forceOrigin, forceAmount);
         }
 
         for (int i = 0; i < deformedVertices.Length; i++)
