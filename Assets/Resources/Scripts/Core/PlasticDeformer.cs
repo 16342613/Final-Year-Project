@@ -32,9 +32,7 @@ public class PlasticDeformer : Deformer
 
     private ComputeBuffer debugBuffer;
     private Vector3[] debugArray;
-    private List<int> wrongPoints = new List<int>();
     private ComputeBuffer vertexDataBuffer;
-    int test = 1;
     private VertexData[] vertices;
 
     struct VertexData
@@ -42,10 +40,8 @@ public class PlasticDeformer : Deformer
         public Vector3 originalVertexPosition;
         public Vector3 vertexPosition;
         public Vector3 vertexVelocity;
-
-        private Vector3 dummy;
-        private Vector3 dummy2;
-        private float dummy3;
+        public int threadID_X;
+        public int threadID_Y;
 
         public VertexData(Vector3 originalVertexPosition, Vector3 vertexPosition, Vector3 vertexVelocity) : this()
         {
@@ -62,10 +58,9 @@ public class PlasticDeformer : Deformer
         originalVertices = deformedMesh.vertices;
         deformedVertices = deformedMesh.vertices;
         vertexVelocities = new Vector3[originalVertices.Length];
+        latestForceOrigin = new Vector3[originalVertices.Length];
 
         computeShader = (ComputeShader)Resources.Load("Shaders/DeformationShader");
-        //TestComputeShader();
-        //objectRenderer.material.SetFloat("_Test", 1.0f);
 
         maxVertexDisplacement = new float[originalVertices.Length];
 
@@ -90,12 +85,37 @@ public class PlasticDeformer : Deformer
             vertices[i] = new VertexData(deformedMesh.vertices[i], deformedMesh.vertices[i], Vector3.zero);
         }
 
-        vertexDataBuffer = new ComputeBuffer(vertices.Length, 64);
+        int threadPoolDimension = (int)Math.Ceiling(Mathf.Sqrt(vertices.Length));
+        int index = 0;
+
+        for (int i = 0; i < threadPoolDimension; i++)
+        {
+            for (int j = 0; j < threadPoolDimension; j++)
+            {
+                if (index < vertices.Length)
+                {
+                    vertices[index].threadID_X = i;
+                    vertices[index].threadID_Y = j;
+
+                    index++;
+                }
+            }
+        }
+
+        vertexDataBuffer = new ComputeBuffer(vertices.Length, (sizeof(float) * 3 * 3) + (sizeof(int) * 2));
+        debugBuffer = new ComputeBuffer(debugArray.Length, sizeof(float) * 3);
+        debugBuffer.SetData(debugArray);
+
+        computeShader.SetBuffer(kernelHandle, Shader.PropertyToID("debugBuffer"), debugBuffer);
         computeShader.SetBuffer(kernelHandle, Shader.PropertyToID("vertexData"), vertexDataBuffer);
         computeShader.SetInt("vertexCount", vertices.Length);
+        computeShader.SetInt("threadPoolDimension", threadPoolDimension);
 
         computeShader.Dispatch(computeShader.FindKernel("AssignThreads"), 1, 1, 1);
 
+        debugBuffer.GetData(debugArray);
+
+        debugBuffer.Dispose();
         vertexDataBuffer.Dispose();
     }
 
@@ -122,22 +142,10 @@ public class PlasticDeformer : Deformer
 
     public void RespondToForce(Vector3 forceOrigin, float forceAmount)
     {
-        bool noProblem = false;
-
-        wrongPoints.Clear();
-
-        TestGPU(forceOrigin, forceAmount);
+        //TestGPU(forceOrigin, forceAmount);
         for (int i = 0; i < deformedVertices.Length; i++)
         {
             //PlasticDeformVertex(i, forceOrigin, forceAmount);
-        }
-
-        for (int i = 0; i < deformedVertices.Length; i++)
-        {
-            if (debugArray[i] != cpuSide[i])
-            {
-                wrongPoints.Add(i);
-            }
         }
 
         //Debug.Log("GPU Debug: " + debugArray[test] + "; \tCPU Debug: " + cpuSide[test] + "; \tGPU Vertex Position:" + verticesGPU[test] + "; \tCPU Vertex Position:" + deformedVertices[test] + "; \tGPU Vertex Velocity:" + vertexVelocitiesGPU[test] + "; \tCPU Vertex Velocity:" + vertexVelocities[test] + "; \tIndex:" + test + "; \tNo Problem:" + noProblem);
@@ -160,16 +168,16 @@ public class PlasticDeformer : Deformer
 
         Vector3 reboundVelocity = displacement * springForce;
 
-        //if (vertexIndex == 3000) Debug.Log(reboundVelocity.magnitude - vertexVelocities[3000].magnitude);
+        if (vertexIndex == 3000) Debug.Log(reboundVelocity.magnitude - vertexVelocities[3000].magnitude);
 
-        /*if (displacement.magnitude > maxVertexDisplacement[vertexIndex])
+        if (displacement.magnitude > maxVertexDisplacement[vertexIndex])
         {
             maxVertexDisplacement[vertexIndex] = displacement.magnitude;
         }
         else if (displacement.magnitude < maxVertexDisplacement[vertexIndex] && returnToRestingForm == false)
         {
             return;
-        }*/
+        }
 
         vertexVelocities[vertexIndex] -= reboundVelocity;
         vertexVelocities[vertexIndex] *= 1f - damping * Time.deltaTime;
@@ -216,7 +224,7 @@ public class PlasticDeformer : Deformer
         int size = (int)Math.Ceiling(Math.Sqrt(verticesGPU.Length));
         computeShader.SetInt(Shader.PropertyToID("sideCount"), size);
 
-        computeShader.Dispatch(kernelHandle, size, size, 1);
+        computeShader.Dispatch(kernelHandle, verticesGPU.Length, 1, 1);
 
         vertexVelocitiesBuffer.GetData(vertexVelocitiesGPU);
         vertexBuffer.GetData(verticesGPU);
@@ -263,21 +271,12 @@ public class PlasticDeformer : Deformer
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.red;
-        if (wrongPoints.Count > 0)
-        {
-            //Gizmos.DrawSphere(transform.TransformPoint(verticesGPU[wrongPoints[index]]), 0.02f);
-        }
-
         //Gizmos.DrawSphere(transform.TransformPoint(collisionPoint), 0.01f);
         //Gizmos.DrawSphere(transform.TransformPoint(offsetCollision), 0.01f);
 
         Gizmos.color = Color.green;
-        if (wrongPoints.Count > 0)
-        {
-            //Gizmos.DrawSphere(transform.TransformPoint(deformedVertices[wrongPoints[index]]), 0.02f);
-        }
 
-        //Gizmos.DrawSphere(transform.TransformPoint(offsetPoint), 0.01f);
+        Gizmos.DrawSphere(transform.TransformPoint(deformedVertices[3000]), 0.01f);
 
         Gizmos.color = Color.white;
         //Gizmos.DrawLine(transform.TransformPoint(offsetCollision), transform.TransformPoint(offsetPoint));

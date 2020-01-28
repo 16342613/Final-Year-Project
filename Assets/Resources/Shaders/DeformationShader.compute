@@ -3,10 +3,8 @@
     float3 originalVertexPosition;
     float3 vertexPosition;
     float3 vertexVelocity;
-    
-    float3 dummy1;
-    float3 dummy2;
-    float dummy3;
+    int threadID_X;
+    int threadID_Y;
 };
 
 RWStructuredBuffer<float3> originalVertexBuffer;
@@ -22,35 +20,37 @@ float uniformScale;
 float springForce;
 float damping;
 float time;
+uint threadPoolDimension;
+/*
 RWStructuredBuffer<VertexData> vertexData;
-int sideCount;
-VertexData vertices[255][255];
+VertexData vertices[127][127];
 
 /*#pragma kernel AssignThreads
 [numthreads(1, 1, 1)]
 void AssignThreads(uint3 id : SV_DispatchThreadID)
 {
-    float squareRoot = sqrt(vertexCount);
-    int rounded = round(squareRoot);
-    int index = 0;
+    uint xIndex = 0;
+    uint yIndex = 0;
+    uint max = 77;
     
-    if ((squareRoot - rounded) > 0)
+    [unroll(6000)]
+    for (int i = 0; i < vertexCount; i++)
     {
-        rounded = rounded + 1;
-    }
-    
-    for (int i = 0; i < 1; i++)
-    {
-        for (int j = 0; j < 1; j++)
+        if (xIndex < threadPoolDimension && yIndex < threadPoolDimension)
         {
-            if (index < vertexCount)
-            {
-                vertices[i][j] = vertexData[index];
-                index = index + 1;
-            }
+            vertices[xIndex][yIndex] = vertexData[i];
+        }
+        
+        yIndex++;
+        
+        if (yIndex >= max)
+        {
+            xIndex++;
+            yIndex = 0;
         }
     }
 }*/
+
 
 #pragma kernel DeformVertex
 [numthreads(1, 1, 1)]
@@ -78,5 +78,27 @@ void DeformVertex(uint3 id : SV_DispatchThreadID)
     vertexVelocitiesBuffer[id.x] = vertexVelocitiesBuffer[id.x] * (1 - damping * time);
         
     vertexBuffer[id.x] = vertexBuffer[id.x] + (vertexVelocitiesBuffer[id.x] * time);
+    
+    /*float distanceFromForce = sqrt(((vertices[id.x][id.y].vertexPosition.x - forceOrigin.x) * (vertices[id.x][id.y].vertexPosition.x - forceOrigin.x))
+                                    + ((vertices[id.x][id.y].vertexPosition.y - forceOrigin.y) * (vertices[id.x][id.y].vertexPosition.y - forceOrigin.y))
+                                    + ((vertices[id.x][id.y].vertexPosition.z - forceOrigin.z) * (vertices[id.x][id.y].vertexPosition.z - forceOrigin.z)));
+        
+    if (distanceFromForce > 0.5)
+    {
+        return;
+    }
+        
+    float forceAtVertex = forceAmount / (meshStrength + 5 * (distanceFromForce * distanceFromForce));
+    float vertexAcceleration = forceAtVertex / vertexMass;
+    //vertices[id.x][id.y].vertexVelocity = normalize(vertices[id.x][id.y].vertexPosition - forceOrigin) * vertexAcceleration;
+        
+    float3 displacement = vertices[id.x][id.y].originalVertexPosition - vertices[id.x][id.y].vertexPosition;
+    displacement = displacement * uniformScale;
+        
+    float3 reboundVelocity = displacement * springForce;
+        
+    vertices[id.x][id.y].vertexVelocity = vertices[id.x][id.y].vertexVelocity + reboundVelocity;
+    vertices[id.x][id.y].vertexVelocity = vertices[id.x][id.y].vertexVelocity * (1 - damping * time);
+        
+    vertices[id.x][id.y].vertexPosition = vertices[id.x][id.y].vertexPosition + (vertices[id.x][id.y].vertexVelocity * time);*/
 }
-
