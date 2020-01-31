@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 using HelperScripts.Components;
+using System.Linq;
+using System;
 
 public class CollisionHandler : MonoBehaviour
 {
@@ -22,19 +24,42 @@ public class CollisionHandler : MonoBehaviour
             collisionObjectToScript.Add(collision.gameObject, collision.gameObject.GetComponent<PlasticDeformer>());
         }
 
-        collisionObjectToScript[collision.gameObject].contactInfo.Add(this.gameObject, collision.contacts);
-        collisionObjectToScript[collision.gameObject].collisionInfo.Add(this.gameObject, collision.relativeVelocity.magnitude * objectMass);
+        try
+        {
+            collisionObjectToScript[collision.gameObject].contactInfo.Add(this.gameObject, collision.contacts);
+            collisionObjectToScript[collision.gameObject].collisionInfo.Add(this.gameObject, collision.relativeVelocity.magnitude * objectMass);
+        }
+        catch (KeyNotFoundException)
+        {
+
+        }
     }
 
     private void OnCollisionStay(Collision collision)
     {
-        collisionObjectToScript[collision.gameObject].contactInfo[this.gameObject] = collision.contacts;
-        collisionObjectToScript[collision.gameObject].collisionInfo[this.gameObject] = collision.relativeVelocity.magnitude * objectMass;
+        try
+        {
+            collisionObjectToScript[collision.gameObject].contactInfo[this.gameObject] = collision.contacts;
+            collisionObjectToScript[collision.gameObject].collisionInfo[this.gameObject] = collision.relativeVelocity.magnitude * objectMass;
+        }
+        catch (KeyNotFoundException)
+        {
+
+        }
     }
 
     private void OnCollisionExit(Collision collision)
     {
-        collisionObjectToScript[collision.gameObject].contactInfo.Remove(this.gameObject);
-        collisionObjectToScript[collision.gameObject].collisionInfo.Remove(this.gameObject);
+        try
+        {
+            Debug.Log("left");
+            collisionObjectToScript[collision.gameObject].contactInfo.Remove(this.gameObject);
+            collisionObjectToScript[collision.gameObject].collisionInfo.Remove(this.gameObject);
+            collisionObjectToScript.Remove(collision.gameObject);
+        }
+        catch (KeyNotFoundException)
+        {
+
+        }
     }
 }

@@ -24,7 +24,6 @@ public class MeshDeformerInput : MonoBehaviour
     void DrawRay()
     {
         var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        RaycastHit hit;
         Debug.DrawRay(ray.origin, ray.direction * 50, Color.red);
 
         //torus.GetComponent<BoundingVolumeHierarchy>().ApplyBVH();
