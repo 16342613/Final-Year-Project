@@ -24,6 +24,8 @@ public class CollisionHandler : MonoBehaviour
             collisionObjectToScript.Add(collision.gameObject, collision.gameObject.GetComponent<PlasticDeformer>());
         }
 
+        Debug.Log(collision.relativeVelocity.magnitude * objectMass);
+
         try
         {
             collisionObjectToScript[collision.gameObject].contactInfo.Add(this.gameObject, collision.contacts);
@@ -52,7 +54,6 @@ public class CollisionHandler : MonoBehaviour
     {
         try
         {
-            Debug.Log("left");
             collisionObjectToScript[collision.gameObject].contactInfo.Remove(this.gameObject);
             collisionObjectToScript[collision.gameObject].collisionInfo.Remove(this.gameObject);
             collisionObjectToScript.Remove(collision.gameObject);

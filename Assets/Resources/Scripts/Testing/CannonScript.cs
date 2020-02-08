@@ -24,6 +24,11 @@ public class CannonScript : MonoBehaviour
             FireCannon();
         }
 
+        if (Input.GetKeyDown(KeyCode.K))
+        {
+            DeleteAll();
+        }
+
         frameCount++;
 
         DeleteOutOfBounds();
@@ -53,7 +58,7 @@ public class CannonScript : MonoBehaviour
         GameObject firedAmmo = Instantiate(ammo, transform.position, Quaternion.identity);
         firedAmmo.transform.LookAt(aimAt);
 
-        firedAmmo.GetComponent<Rigidbody>().AddForce(firedAmmo.transform.forward * 500f);
+        firedAmmo.GetComponent<Rigidbody>().AddForce(firedAmmo.transform.forward * 50f);
 
         firedAmmos.Add(firedAmmo);
 
@@ -75,6 +80,15 @@ public class CannonScript : MonoBehaviour
                     firedAmmos.RemoveAt(i);
                 }
             }
+        }
+    }
+
+    private void DeleteAll()
+    {
+        for (int i = 0; i < firedAmmos.Count; i++)
+        {
+            Destroy(firedAmmos[i]);
+            firedAmmos.RemoveAt(i);
         }
     }
 }

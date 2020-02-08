@@ -46,12 +46,11 @@ public class Deformer : MonoBehaviour
     protected void ParseContactPoints()
     {
         List<Vector3> consideredContactPoints = new List<Vector3>();
+        contactPoints.Clear();
+        contactDetails.Clear();
 
         if (contactInfo.Count != 0)
         {
-            contactPoints.Clear();
-            contactDetails.Clear();
-
             for (int i = 0; i < contactInfo.Count; i++)
             {
                 bool addAllPoints = false;
