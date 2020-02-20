@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using System.Linq;
+using HelperScripts.Methods;
 
 public class PlasticDeformer : Deformer
 {
@@ -36,6 +37,7 @@ public class PlasticDeformer : Deformer
     private VertexData[] vertices;
 
     private Vector3[] secondaryVertexArray;
+    private Vector3[] test;
 
     struct VertexData
     {
@@ -76,6 +78,10 @@ public class PlasticDeformer : Deformer
         vertices = new VertexData[deformedMesh.vertices.Length];
 
         //ComputeShaderSetup();
+
+        MeshManager meshManager = new MeshManager(this.GetComponent<MeshFilter>());
+        //test = meshManager.CalculateMeshStrengths();
+        //meshManager.DrawColliders();
     }
 
     private void ComputeShaderSetup()
@@ -337,19 +343,25 @@ public class PlasticDeformer : Deformer
     }
 
     // Gizmos for debug
-    private void OnDrawGizmos()
+    /*private void OnDrawGizmos()
     {
         Gizmos.color = Color.red;
         //Gizmos.DrawSphere(transform.TransformPoint(collisionPoint), 0.01f);
         //Gizmos.DrawSphere(transform.TransformPoint(offsetCollision), 0.01f);
 
         Gizmos.color = Color.green;
+        for(int i=0; i<vertices.Length; i++)
+        {
+            //Gizmos.DrawLine(transform.TransformPoint(deformedVertices[i]), transform.TransformPoint(deformedVertices[i] + test[i]));
+            //Gizmos.DrawLine(transform.TransformPoint(deformedVertices[i]), transform.TransformPoint(deformedVertices[i] - test[i] * 0.01f));
+            Gizmos.DrawSphere(transform.TransformPoint(test[i]), 0.01f);
+        }
 
         //Gizmos.DrawSphere(transform.TransformPoint(deformedVertices[3000]), 0.01f);
 
         Gizmos.color = Color.white;
         //Gizmos.DrawLine(transform.TransformPoint(offsetCollision), transform.TransformPoint(offsetPoint));
         //Gizmos.DrawSphere(transform.TransformPoint(deformedVertices[5500]), 0.01f);
-    }
+    }*/
 }
 

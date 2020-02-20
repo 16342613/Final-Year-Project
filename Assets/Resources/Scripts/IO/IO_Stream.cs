@@ -18,9 +18,12 @@ namespace InputOutput
             if (clearFile == true)
             {
                 File.WriteAllText(filePath, "");
+                File.WriteAllLines(filePath, linesToWrite);
             }
-
-            File.WriteAllLines(filePath, linesToWrite);
+            else
+            {
+                File.AppendAllLines(filePath, linesToWrite);
+            }
         }
     }
 }
