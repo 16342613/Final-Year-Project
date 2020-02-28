@@ -342,7 +342,7 @@ GameObject:
     type: 3}
   m_PrefabInstance: {fileID: 666793946}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &546076510
+--- !u!114 &546076513
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -351,14 +351,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 546076508}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 55a3c3b66afa88a4f932152cbc29e0d5, type: 3}
+  m_Script: {fileID: 11500000, guid: b79f395ee15ec497aa738aeef68c307e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  meshStrength: 1
-  vertexMass: 1
-  springForce: 20
-  damping: 5
-  returnToRestingForm: 0
+  origin: {x: 0, y: 0, z: 0}
+  index: 0
 --- !u!1001 &666793946
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -429,7 +426,7 @@ PrefabInstance:
     - target: {fileID: -927199367670048503, guid: e55bf09e085734699b1965bcd45332e7,
         type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: e55bf09e085734699b1965bcd45332e7, type: 3}
@@ -915,7 +912,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   origin: {x: 0, y: 0, z: 0}
-  index: 1
+  index: 0
 --- !u!64 &1684414462
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -1218,7 +1215,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 33462193921330939}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 55a3c3b66afa88a4f932152cbc29e0d5, type: 3}
   m_Name: 

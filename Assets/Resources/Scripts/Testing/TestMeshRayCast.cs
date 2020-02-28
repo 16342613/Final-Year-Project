@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Debugger;
 using HelperScripts.Methods;
 using UnityEngine;
 
@@ -11,22 +12,24 @@ public class TestMeshRayCast : MonoBehaviour
     private Vector3[] directions = new Vector3[6];
     private Dictionary<Vector3, List<Vector3>> connectedVertices;
     private Mesh mesh;
-    public int index = 1;
+    public int index = 0;
     List<List<int>> meshTriangles;
+    List<List<int>> stronglyConnectedTriangles;
 
     // Start is called before the first frame update
     void Start()
     {
         mesh = this.GetComponent<MeshFilter>().mesh;
         //mesh.triangles = mesh.triangles.Reverse().ToArray();
-        meshCollider = GetComponent<MeshCollider>();
-        origin = meshCollider.bounds.center; //+ new Vector3(1, 0, 0);
+        //meshCollider = GetComponent<MeshCollider>();
+        //origin = meshCollider.bounds.center; //+ new Vector3(1, 0, 0);
 
         MeshManager meshManager = new MeshManager(this.GetComponent<MeshFilter>());
         connectedVertices = meshManager.GetConnectedVertices();
 
+        meshTriangles = meshManager.GetMeshTriangles();
+        stronglyConnectedTriangles = meshManager.GetStronglyConnectedTriangles();
         DrawBoxColliders();
-        //meshTriangles = meshManager.DrawColliders();
     }
 
     // Update is called once per frame
@@ -74,14 +77,14 @@ public class TestMeshRayCast : MonoBehaviour
 
             if (Physics.Raycast(origin, direction, out hit[i]))
             {
-                Debug.Log(hit[i].collider.gameObject.name);
+                //Debug.Log(hit[i].collider.gameObject.name);
             }
         }
     }
 
     private void DrawBoxColliders()
     {
-        List<Vector3> remainingVertices = mesh.vertices.ToList();
+        /*List<Vector3> remainingVertices = mesh.vertices.ToList();
 
         //while (remainingVertices.Count > 0) {
 
@@ -112,15 +115,21 @@ public class TestMeshRayCast : MonoBehaviour
         BoxCollider boxCollider = this.gameObject.AddComponent<BoxCollider>();
         boxCollider.hideFlags = HideFlags.HideInInspector;
         boxCollider.center = boxColliderCentre;
-        boxCollider.size = new Vector3(1, 1, 0.1f);
+        boxCollider.size = new Vector3(1, 1, 0.1f);*/
     }
 
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.red;
-        Gizmos.DrawSphere(origin, 0.1f);
 
-        for (int i = 0; i < 6; i++)
+        /*for (int i = 0; i < 100; i++)
+        {
+            Gizmos.DrawLine(transform.TransformPoint(mesh.vertices[i]), transform.TransformPoint(mesh.vertices[i] + mesh.normals[i]));
+        }*/
+
+        //Gizmos.DrawSphere(origin, 0.1f);
+
+        /*for (int i = 0; i < 6; i++)
         {
             Gizmos.DrawLine(origin, origin + directions[i]);
         }
@@ -134,6 +143,51 @@ public class TestMeshRayCast : MonoBehaviour
         for (int i = 0; i < connectedVertices[mesh.vertices[index]].Count; i++)
         {
             Gizmos.DrawSphere(transform.TransformPoint(verticesConnectedToQueryPoint[i]), 0.05f);
+        }*/
+
+        /*List<int> stronglyConnected = stronglyConnectedTriangles[index];
+
+        for (int i = 0; i < stronglyConnected.Count; i++)
+        {
+            for (int j = 0; j < 3; j++)
+            {
+                Gizmos.DrawSphere(transform.TransformPoint(mesh.vertices[meshTriangles[stronglyConnected[i]][j]]), 0.05f);
+            }
+        }*/
+
+        //Gizmos.color = Color.blue;
+        //Gizmos.DrawSphere(transform.TransformPoint(mesh.vertices[312]), 0.05f);
+        //Gizmos.DrawSphere(transform.TransformPoint(mesh.vertices[311]), 0.05f);
+        List<Vector3> notDrawn = mesh.vertices.ToList();
+        List<int> notDrawnInts = new List<int>();
+
+        for (int i = 0; i < mesh.vertexCount; i++)
+        {
+            notDrawnInts.Add(i);
         }
+
+        for (int i = 0; i < stronglyConnectedTriangles.Count; i++)
+        {
+            if (stronglyConnectedTriangles[i].Count == 0) continue;
+            for (int j = 0; j < 2; j++)
+            {
+                for (int k = 0; k < 3; k++)
+                {
+                    //Gizmos.DrawCube(transform.TransformPoint(mesh.vertices[meshTriangles[stronglyConnectedTriangles[i][j]][k]]), new Vector3(0.05f, 0.05f, 0.05f));
+                    notDrawn.Remove(mesh.vertices[meshTriangles[stronglyConnectedTriangles[i][j]][k]]);
+                    notDrawnInts.Remove(meshTriangles[stronglyConnectedTriangles[i][j]][k]);
+                }
+
+            }
+        }
+
+        Gizmos.color = Color.blue;
+        for (int i = 0; i < notDrawn.Count; i++)
+        {
+            Gizmos.DrawSphere(transform.TransformPoint(notDrawn[i]), 0.03f);
+        }
+
+        Debug.Log(notDrawn.Count);
+        DebugHelper.PrintList(notDrawnInts);
     }
 }

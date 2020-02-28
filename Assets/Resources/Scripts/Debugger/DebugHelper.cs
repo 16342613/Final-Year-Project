@@ -17,7 +17,9 @@ namespace Debugger
             // Empty constructor
         }
 
-        public static void PrintList(List<object> toPrint, bool printIndex = false)
+        #region PrintList
+
+        public static void PrintList(List<int> toPrint, bool printIndex = false)
         {
             string printLine = "";
 
@@ -33,6 +35,42 @@ namespace Debugger
 
             Debug.Log(printLine);
         }
+
+        public static void PrintList(List<String> toPrint, bool printIndex = false)
+        {
+            string printLine = "";
+
+            for (int i = 0; i < toPrint.Count; i++)
+            {
+                if (printIndex == true)
+                {
+                    printLine += "<" + i + "> ";
+                }
+
+                printLine += toPrint[i] + " ; ";
+            }
+
+            Debug.Log(printLine);
+        }
+
+        public static void PrintList(List<Vector3> toPrint, bool printIndex = false)
+        {
+            string printLine = "";
+
+            for (int i = 0; i < toPrint.Count; i++)
+            {
+                if (printIndex == true)
+                {
+                    printLine += "<" + i + "> ";
+                }
+
+                printLine += toPrint[i] + " ; ";
+            }
+
+            Debug.Log(printLine);
+        }
+
+        #endregion
 
         #region PrintArray
 

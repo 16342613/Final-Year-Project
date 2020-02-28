@@ -16,6 +16,8 @@ namespace HelperScripts.Methods
         private List<List<Vector3>> triangleDetails;
         private GameObject meshParentObject;
         private Dictionary<Vector3, List<Vector3>> connectedVertices;
+        List<List<int>> meshTriangles = new List<List<int>>();
+        private List<List<int>> stronglyConnectedTriangles;
 
         public MeshManager(Mesh queryMesh)
         {
@@ -57,7 +59,7 @@ namespace HelperScripts.Methods
             }
 
             triangleDetails = trianglesInfo;
-            DebugHelper.PrintListList(triangleDetails, false, true);
+            //DebugHelper.PrintListList(triangleDetails, false, true);
             GetVertexPath(new Vector3(0.5f, -0.5f, 0.5f), new Vector3(0.5f, 0.5f, 0.5f));
 
             // Loop through each triangle
@@ -86,11 +88,8 @@ namespace HelperScripts.Methods
             return connectedVertices;
         }
 
-        public List<List<int>> DrawColliders()
+        public List<List<int>> GetMeshTriangles()
         {
-            List<List<int>> meshTriangles = new List<List<int>>();
-            List<List<int>> stronglyConnectedTriangles = new List<List<int>>(); // Contains the indexes of meshTriangles which share 2 nodes
-
             for (int i = 0; i < triangles.Length; i++)
             {
                 if (i % 3 == 0)
@@ -101,7 +100,19 @@ namespace HelperScripts.Methods
                 meshTriangles.Last().Add(triangles[i]);
             }
 
-            DebugHelper.PrintListList(meshTriangles, false, true);
+            return meshTriangles;
+        }
+
+        public List<List<int>> GetStronglyConnectedTriangles()
+        {
+            stronglyConnectedTriangles = new List<List<int>>(); // Contains the indexes of meshTriangles which share 2 nodes
+            List<List<int>> toReturn = new List<List<int>>();   // The indexes of the meshTriangles connected by their hypotenuses
+            List<List<int>> connectedNodes = new List<List<int>>();
+
+            if (meshTriangles.Count == 0)
+            {
+                GetMeshTriangles();
+            }
 
             for (int i = 0; i < meshTriangles.Count; i++)
             {
@@ -110,6 +121,7 @@ namespace HelperScripts.Methods
                 for (int j = 0; j < meshTriangles.Count; j++)
                 {
                     if (j == i) continue;
+                    List<int> connections = new List<int>();
 
                     int nodesShared = 0;
 
@@ -117,12 +129,14 @@ namespace HelperScripts.Methods
                     {
                         if (meshTriangles[j].Contains(currentTriangle[k]))
                         {
+                            connections.Add(k);
                             nodesShared++;
                         }
                     }
 
                     if (nodesShared == 2)
                     {
+                        connectedNodes.Add(connections);
                         stronglyConnectedTriangles.Add(new List<int> { i, j });
                         break;
                     }
@@ -131,25 +145,38 @@ namespace HelperScripts.Methods
 
             for (int i = 0; i < stronglyConnectedTriangles.Count; i++)
             {
-                int triangleOne = stronglyConnectedTriangles[i][0];
-                int triangleTwo = stronglyConnectedTriangles[i][1];
+                List<int> triangleIndexes = stronglyConnectedTriangles[i];
+                List<int> triangle1 = meshTriangles[triangleIndexes[0]];
+                List<int> triangle2 = meshTriangles[triangleIndexes[1]];
+                List<int> connections = new List<int>();
 
-                for (int j = 0; j < stronglyConnectedTriangles.Count; j++)
+                for (int j = 0; j < 3; j++)
                 {
-                    int triangleThree = stronglyConnectedTriangles[j][0];
-                    int triangleFour = stronglyConnectedTriangles[j][1];
-
-                    if (triangleOne == triangleFour && triangleTwo == triangleThree)
+                    if (triangle2.Contains(triangle1[j]))
                     {
-                        stronglyConnectedTriangles.RemoveAt(j);
-                        break;
+                        connections.Add(triangle1[j]);
                     }
+                }
+
+                float distanceBetweenConnections = Vector3.Distance(vertices[connections[0]], vertices[connections[1]]);
+
+                float distance1 = Vector3.Distance(vertices[triangle1[0]], vertices[triangle1[1]]);
+                float distance2 = Vector3.Distance(vertices[triangle1[0]], vertices[triangle1[2]]);
+                float distance3 = Vector3.Distance(vertices[triangle1[1]], vertices[triangle1[2]]);
+
+                if ((distanceBetweenConnections < distance1) || (distanceBetweenConnections < distance2) || (distanceBetweenConnections < distance3))
+                {
+                    // Don't add this to the list
+                }
+                else
+                {
+                    toReturn.Add(stronglyConnectedTriangles[i]);
                 }
             }
 
-            DebugHelper.PrintListList(stronglyConnectedTriangles, false, true, false);
+            DebugHelper.PrintListList(toReturn, false, true);
 
-            return meshTriangles;
+            return toReturn;
         }
 
         public Vector3 GetClosestVertexToPoint(Vector3 queryPoint, bool convertToLocalSpace = false, Transform objectTransform = null)

@@ -17,12 +17,12 @@ namespace InputOutput
         {
             if (clearFile == true)
             {
-                File.WriteAllText(filePath, "");
-                File.WriteAllLines(filePath, linesToWrite);
+                File.WriteAllText("Assets//Resources//Scripts//IO//Log.txt", "");
+                File.WriteAllLines("Assets//Resources//Scripts//IO//Log.txt", linesToWrite);
             }
             else
             {
-                File.AppendAllLines(filePath, linesToWrite);
+                File.AppendAllLines("Assets//Resources//Scripts//IO//Log.txt", linesToWrite);
             }
         }
     }
