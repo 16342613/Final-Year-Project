@@ -9,15 +9,17 @@ namespace HelperScripts.Methods
 {
     public class MeshManager
     {
-        private Mesh queryMesh;
-        private Vector3[] normals;
-        private Vector3[] vertices;
-        private int[] triangles;
-        private List<List<Vector3>> triangleDetails;
-        private GameObject meshParentObject;
-        private Dictionary<Vector3, List<Vector3>> connectedVertices;
-        List<List<int>> meshTriangles = new List<List<int>>();
-        private List<List<int>> stronglyConnectedTriangles;
+        public Mesh queryMesh;
+        public Vector3[] normals;
+        public Vector3[] vertices;
+        public int[] triangles;
+        public List<List<Vector3>> triangleDetails;
+        public GameObject meshParentObject;
+        public Dictionary<Vector3, List<Vector3>> connectedVertices;
+        public List<List<int>> meshTriangles = new List<List<int>>();
+        public List<List<int>> stronglyConnectedTriangles = new List<List<int>>();
+
+        public List<List<int>> colliderTriangles = new List<List<int>>();
 
         public MeshManager(Mesh queryMesh)
         {
@@ -60,7 +62,7 @@ namespace HelperScripts.Methods
 
             triangleDetails = trianglesInfo;
             //DebugHelper.PrintListList(triangleDetails, false, true);
-            GetVertexPath(new Vector3(0.5f, -0.5f, 0.5f), new Vector3(0.5f, 0.5f, 0.5f));
+            //GetVertexPath(new Vector3(0.5f, -0.5f, 0.5f), new Vector3(0.5f, 0.5f, 0.5f));
 
             // Loop through each triangle
             for (int i = 0; i < triangleDetails.Count; i++)
@@ -105,8 +107,6 @@ namespace HelperScripts.Methods
 
         public List<List<int>> GetStronglyConnectedTriangles()
         {
-            stronglyConnectedTriangles = new List<List<int>>(); // Contains the indexes of meshTriangles which share 2 nodes
-            List<List<int>> toReturn = new List<List<int>>();   // The indexes of the meshTriangles connected by their hypotenuses
             List<List<int>> connectedNodes = new List<List<int>>();
 
             if (meshTriangles.Count == 0)
@@ -117,6 +117,8 @@ namespace HelperScripts.Methods
             for (int i = 0; i < meshTriangles.Count; i++)
             {
                 List<int> currentTriangle = meshTriangles[i];
+                float largestConnectionDistance = 0;
+                List<int> largestConnectionNodes = new List<int>();
 
                 for (int j = 0; j < meshTriangles.Count; j++)
                 {
@@ -137,10 +139,18 @@ namespace HelperScripts.Methods
                     if (nodesShared == 2)
                     {
                         connectedNodes.Add(connections);
-                        stronglyConnectedTriangles.Add(new List<int> { i, j });
-                        break;
+
+                        float distanceBetweenConnections = Vector3.Distance(vertices[connections[0]], vertices[connections[1]]);
+
+                        if (distanceBetweenConnections > largestConnectionDistance)
+                        {
+                            largestConnectionDistance = distanceBetweenConnections;
+                            largestConnectionNodes = new List<int> { i, j };
+                        }
                     }
                 }
+
+                stronglyConnectedTriangles.Add(largestConnectionNodes);
             }
 
             for (int i = 0; i < stronglyConnectedTriangles.Count; i++)
@@ -170,13 +180,13 @@ namespace HelperScripts.Methods
                 }
                 else
                 {
-                    toReturn.Add(stronglyConnectedTriangles[i]);
+                    colliderTriangles.Add(stronglyConnectedTriangles[i]);
                 }
             }
 
-            DebugHelper.PrintListList(toReturn, false, true);
+            DebugHelper.PrintListList(colliderTriangles, false, true);
 
-            return toReturn;
+            return colliderTriangles;
         }
 
         public Vector3 GetClosestVertexToPoint(Vector3 queryPoint, bool convertToLocalSpace = false, Transform objectTransform = null)
@@ -203,36 +213,6 @@ namespace HelperScripts.Methods
             }
 
             return closestVertex;
-        }
-
-        /// <summary>
-        /// Gets vertices of the top layer of the mesh.
-        /// This is ideal when you want to use a plane as a mesh,
-        /// but backface culling prevents the plane from being rendered
-        /// so you have to use a box instead. We only need to consider
-        /// the vertices on the top of the mesh, and we can copy their
-        /// movements for the bottom of the mesh.
-        /// </summary>
-        /// <returns></returns>
-        public List<int> GetTopVertices()
-        {
-            List<int> topVertexIndexes = new List<int>();
-
-            return topVertexIndexes;
-        }
-
-        public List<int> GetMeshEdgeVertices()
-        {
-            return null;
-        }
-
-        public List<Vector3> GetVertexPath(Vector3 startVertex, Vector3 targetVertex)
-        {
-            List<Vector3> path = new List<Vector3>();
-
-            // TODO
-
-            return path;
         }
 
         public Vector3[] CalculateMeshStrengths()
