@@ -150,7 +150,10 @@ namespace HelperScripts.Methods
                     }
                 }
 
-                stronglyConnectedTriangles.Add(largestConnectionNodes);
+                if (largestConnectionNodes.Count == 2)
+                {
+                    stronglyConnectedTriangles.Add(largestConnectionNodes);
+                }             
             }
 
             for (int i = 0; i < stronglyConnectedTriangles.Count; i++)
@@ -184,9 +187,72 @@ namespace HelperScripts.Methods
                 }
             }
 
+            #region old
+            /*for (int i = 0; i < stronglyConnectedTriangles.Count; i++)
+            {
+                List<int> triangleIndexes = stronglyConnectedTriangles[i];
+                List<int> triangle1 = meshTriangles[triangleIndexes[0]];
+                List<int> triangle2 = meshTriangles[triangleIndexes[1]];
+                List<int> connections = new List<int>();
+
+                for (int j = 0; j < 3; j++)
+                {
+                    if (triangle2.Contains(triangle1[j]))
+                    {
+                        connections.Add(triangle1[j]);
+                    }
+                }
+
+                float distanceBetweenConnections = Vector3.Distance(vertices[connections[0]], vertices[connections[1]]);
+
+                float distance1 = Vector3.Distance(vertices[triangle1[0]], vertices[triangle1[1]]);
+                float distance2 = Vector3.Distance(vertices[triangle1[0]], vertices[triangle1[2]]);
+                float distance3 = Vector3.Distance(vertices[triangle1[1]], vertices[triangle1[2]]);
+
+                if ((distanceBetweenConnections < distance1) || (distanceBetweenConnections < distance2) || (distanceBetweenConnections < distance3))
+                {
+                    // Don't add this to the list
+                }
+                else
+                {
+                    colliderTriangles.Add(stronglyConnectedTriangles[i]);
+                }
+            }*/
+            #endregion
+
+            List<List<int>> processedColliderTriangles = new List<List<int>>();
+            List<int> duplicatedIndexes = new List<int>();
             DebugHelper.PrintListList(colliderTriangles, false, true);
 
-            return colliderTriangles;
+            for (int i = 0; i < colliderTriangles.Count; i++)
+            {
+                int triangle1 = colliderTriangles[i][0];
+                int triangle2 = colliderTriangles[i][1];
+
+                for (int j = i; j < colliderTriangles.Count; j++)
+                {
+                    int triangle3 = colliderTriangles[j][0];
+                    int triangle4 = colliderTriangles[j][1];
+
+                    if (triangle1 == triangle4 && triangle2 == triangle3)
+                    {
+                        duplicatedIndexes.Add(j);
+                    }
+                }
+            }
+
+            for (int i = 0; i < colliderTriangles.Count; i++)
+            {
+                if (duplicatedIndexes.Contains(i) == false)
+                {
+                    processedColliderTriangles.Add(colliderTriangles[i]);
+                }
+            }
+
+            DebugHelper.PrintListList(processedColliderTriangles, false, true);
+            colliderTriangles = processedColliderTriangles;
+
+            return processedColliderTriangles;
         }
 
         public Vector3 GetClosestVertexToPoint(Vector3 queryPoint, bool convertToLocalSpace = false, Transform objectTransform = null)
