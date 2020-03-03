@@ -12,7 +12,8 @@ public class TestMeshRayCast : MonoBehaviour
     private Vector3[] directions = new Vector3[6];
     private Dictionary<Vector3, List<Vector3>> connectedVertices;
     private Mesh mesh;
-    public int index = 0;
+    public int index = 13;
+    public int testIndex = 0;
     List<List<int>> meshTriangles;
     List<List<int>> colliderTriangles;
 
@@ -20,9 +21,10 @@ public class TestMeshRayCast : MonoBehaviour
     private List<List<Vector3>> colliderVertices = new List<List<Vector3>>();
     List<BoxCollider> colliders = new List<BoxCollider>();
     public float colliderHeight = 0.01f;
-    private Vector3 initialPosition;
+    private MeshManager meshManager;
 
     private GameObject p;
+    private List<Vector3> stuff = new List<Vector3>();
 
     // Start is called before the first frame update
     void Start()
@@ -32,7 +34,7 @@ public class TestMeshRayCast : MonoBehaviour
         //meshCollider = GetComponent<MeshCollider>();
         //origin = meshCollider.bounds.center; //+ new Vector3(1, 0, 0);
 
-        MeshManager meshManager = new MeshManager(this.GetComponent<MeshFilter>());
+        meshManager = new MeshManager(this.GetComponent<MeshFilter>());
         connectedVertices = meshManager.GetConnectedVertices();
 
         meshTriangles = meshManager.GetMeshTriangles();
@@ -96,20 +98,24 @@ public class TestMeshRayCast : MonoBehaviour
     public void DrawColliders()
     {
         GameObject child = new GameObject();
+        child.name = "Colliders";
         //child.hideFlags = HideFlags.HideInHierarchy;
-        initialPosition = this.gameObject.transform.position;
         child.transform.position = transform.position;
         child.transform.parent = this.gameObject.transform;
 
         for (int i = 0; i < colliderTriangles.Count; i++)
         {
             GameObject intermediateObject = new GameObject();
+            intermediateObject.name = "Intermediate - " + i;
             //intermediateObject.hideFlags = HideFlags.HideInHierarchy;
             intermediateObject.transform.parent = child.transform;
 
             colliderVertices.Add(new List<Vector3>());
             colliderVertices[i].AddRange(triangleDetails[colliderTriangles[i][0]]);
             colliderVertices[i].AddRange(triangleDetails[colliderTriangles[i][1]]);
+            List<Vector3> colliderVerticesCopy = colliderVertices[i].ConvertAll(vertex => new Vector3(vertex.x, vertex.y, vertex.z));
+            List<Vector3> connectedNodes = colliderVertices[i].GroupBy(s => s).SelectMany(grp => grp.Skip(1)).Distinct().ToList();
+            List<Vector3> unconnectedNodes = colliderVerticesCopy.Except(connectedNodes).ToList();
             colliderVertices[i] = colliderVertices[i].Distinct().ToList();
             Vector3 boxColliderCentre = Vector3.zero;
 
@@ -119,24 +125,70 @@ public class TestMeshRayCast : MonoBehaviour
             }
 
             boxColliderCentre = boxColliderCentre / 4;
-            origin = boxColliderCentre;
 
-            //intermediateObject.transform.rotation = Quaternion.FromToRotation(intermediateObject.transform.forward, mesh.normals[meshTriangles[colliderTriangles[i][0]][0]]);
+            if (i == 281) origin = intermediateObject.transform.TransformPoint((colliderVertices[i][1] + colliderVertices[i][2]) / 2);
+            Vector3 midpoint = intermediateObject.transform.TransformPoint((colliderVertices[i][1] + colliderVertices[i][2]) / 2);
             intermediateObject.transform.localPosition = Vector3.zero;
 
             GameObject colliderContainer = new GameObject();
+            colliderContainer.name = "ColliderContainer";
             //colliderContainer.hideFlags = HideFlags.HideInHierarchy;
             colliderContainer.transform.parent = intermediateObject.transform;
             colliderContainer.transform.position = transform.TransformPoint(boxColliderCentre);
-            colliderContainer.transform.rotation = Quaternion.FromToRotation(colliderContainer.transform.forward, mesh.normals[meshTriangles[colliderTriangles[i][0]][0]]);
+
+            Vector3 averageNormal = (mesh.normals[meshTriangles[colliderTriangles[i][0]][0]] +
+                                     mesh.normals[meshTriangles[colliderTriangles[i][0]][1]] +
+                                     mesh.normals[meshTriangles[colliderTriangles[i][1]][0]] +
+                                     mesh.normals[meshTriangles[colliderTriangles[i][1]][1]]) / 4;
+            colliderContainer.transform.rotation = Quaternion.FromToRotation(colliderContainer.transform.forward, averageNormal);
 
             BoxCollider boxCollider = colliderContainer.AddComponent<BoxCollider>();
             //boxCollider.hideFlags = HideFlags.HideInInspector;
-            //boxCollider.center = boxColliderCentre;
+            colliderContainer.transform.localRotation = Quaternion.Euler(colliderContainer.transform.localRotation.eulerAngles.x, colliderContainer.transform.localRotation.eulerAngles.y, 0);
 
-            float boxColliderSizeX = (Vector3.Distance(colliderVertices[i][0], colliderVertices[i][1]) + Vector3.Distance(colliderVertices[i][2], colliderVertices[i][3])) / 2;
-            float boxColliderSizeY = (Vector3.Distance(colliderVertices[i][1], colliderVertices[i][2]) + Vector3.Distance(colliderVertices[i][3], colliderVertices[i][0])) / 2;
+            if (i == 34)
+            {
+
+            }
+
+            Vector3 yVector = intermediateObject.transform.TransformDirection(unconnectedNodes[0] - connectedNodes[0]).normalized;
+            Vector3 xVector = intermediateObject.transform.TransformDirection(connectedNodes[1] - unconnectedNodes[0]).normalized;
+            Vector3 colliderUp = colliderContainer.transform.TransformDirection(colliderContainer.transform.up).normalized;
+            float value = Vector3.Dot(xVector, yVector);
+
+            //float boxColliderSizeX = (Vector3.Distance(colliderVertices[i][0], colliderVertices[i][1]) + Vector3.Distance(colliderVertices[i][2], colliderVertices[i][3])) / 2;
+            //float boxColliderSizeY = (Vector3.Distance(colliderVertices[i][1], colliderVertices[i][2]) + Vector3.Distance(colliderVertices[i][3], colliderVertices[i][0])) / 2;
+            float boxColliderSizeX = (Vector3.Distance(connectedNodes[0], unconnectedNodes[0]) + Vector3.Distance(connectedNodes[1], unconnectedNodes[1])) / 2;
+            float boxColliderSizeY = (Vector3.Distance(connectedNodes[1], unconnectedNodes[0]) + Vector3.Distance(connectedNodes[0], unconnectedNodes[1])) / 2;
+
+            Vector3 vec1 = intermediateObject.transform.TransformDirection(unconnectedNodes[0] - connectedNodes[0]);
+            Vector3 vec2 = intermediateObject.transform.TransformDirection(connectedNodes[1] - unconnectedNodes[0]);
+            Vector3 vec3 = intermediateObject.transform.TransformDirection(unconnectedNodes[1] - connectedNodes[1]);
+            Vector3 vec4 = intermediateObject.transform.TransformDirection(connectedNodes[0] - unconnectedNodes[1]);
+
+            List<Vector3> sideVectors = new List<Vector3> { vec1, vec2, vec3, vec4 };
+            List<float> slopeDirections = new List<float> { Mathf.Abs(Vector3.Dot(vec1.normalized, colliderContainer.transform.TransformDirection(colliderContainer.transform.up))),
+                                                            Mathf.Abs(Vector3.Dot(vec2.normalized, colliderContainer.transform.TransformDirection(colliderContainer.transform.up))),
+                                                            Mathf.Abs(Vector3.Dot(vec3.normalized, colliderContainer.transform.TransformDirection(colliderContainer.transform.up))),
+                                                            Mathf.Abs(Vector3.Dot(vec4.normalized, colliderContainer.transform.TransformDirection(colliderContainer.transform.up))) };
+
+            List<float> xSidesLengths = new List<float>();
+            List<float> ySidesLengths = new List<float>();
+
+            for (int j = 0; j < 4; j++)
+            {
+                if (slopeDirections[j] > 0.5f)
+                {
+                    ySidesLengths.Add(sideVectors[j].magnitude);
+                }
+                else if (slopeDirections[j] < 0.5f)
+                {
+                    xSidesLengths.Add(sideVectors[j].magnitude);
+                }
+            }
+
             boxCollider.size = new Vector3(boxColliderSizeX, boxColliderSizeY, colliderHeight);
+            //boxCollider.size = new Vector3((xSidesLengths[0] + xSidesLengths[1]) / 2, (ySidesLengths[0] + ySidesLengths[1]) / 2, colliderHeight);
 
             Vector3 x1 = colliderVertices[i][0] - colliderVertices[i][1];
             Vector3 y1 = colliderVertices[i][0] - colliderVertices[i][3];
@@ -146,14 +198,11 @@ public class TestMeshRayCast : MonoBehaviour
             colliderDirection += 90 - Vector3.Angle(x2, y2);
             colliderDirection = colliderDirection / 2;
 
-            List<Vector3> triangleVertices = colliderVertices[i];
-            List<float> distancesBetweenVertices = new List<float>();
+            colliderContainer.transform.localRotation = Quaternion.Euler(colliderContainer.transform.localRotation.eulerAngles.x, colliderContainer.transform.localRotation.eulerAngles.y, 0);
+            //colliderContainer.transform.RotateAround(transform.TransformPoint(boxColliderCentre), Vector3.forward, colliderDirection);
 
-
-
-            Debug.Log("index = " + i + " ; rotation = " + colliderDirection);
-            colliderContainer.transform.localRotation = Quaternion.Euler(colliderContainer.transform.localRotation.eulerAngles.x, colliderContainer.transform.localRotation.eulerAngles.y, colliderDirection);
-            //colliderContainer.transform.RotateAround(transform.TransformPoint(boxColliderCentre), Vector3.up, 180);
+            //float angle = Vector3.Angle(transform.forward, target.position);
+            //olliderContainer.transform.rotation = Quaternion.FromToRotation(colliderContainer.transform.right, transform.TransformDirection(x1));
             colliders.Add(boxCollider);
 
             //intermediateObject.SetActive(false);
@@ -165,52 +214,16 @@ public class TestMeshRayCast : MonoBehaviour
         }
     }
 
-    private void DrawBoxColliders()
-    {
-        /*List<Vector3> remainingVertices = mesh.vertices.ToList();
-
-        //while (remainingVertices.Count > 0) {
-
-        Vector3 currentVertex = remainingVertices[0];
-        List<Vector3> verticesConnectedToCurrent = connectedVertices[currentVertex];
-        List<Vector3> boxColliderVertices = new List<Vector3>();
-
-        boxColliderVertices.Add(currentVertex);
-
-        string toPrint = "";
-        for (int i = 0; i < verticesConnectedToCurrent.Count; i++)
-        {
-            toPrint += "Index: " + i + " Point: " + verticesConnectedToCurrent[i] + "; ";
-            boxColliderVertices.Add(verticesConnectedToCurrent[i]);
-        }
-
-        Vector3 boxColliderCentre = Vector3.zero;
-
-
-        for (int i = 0; i < boxColliderVertices.Count - 1; i++)
-        {
-            boxColliderCentre += boxColliderVertices[i];
-            remainingVertices.Remove(boxColliderVertices[i]);
-        }
-
-        boxColliderCentre = boxColliderCentre / 4;
-
-        BoxCollider boxCollider = this.gameObject.AddComponent<BoxCollider>();
-        boxCollider.hideFlags = HideFlags.HideInInspector;
-        boxCollider.center = boxColliderCentre;
-        boxCollider.size = new Vector3(1, 1, 0.1f);*/
-    }
-
     private void OnDrawGizmos()
     {
-        /*Gizmos.color = Color.red;
+        Gizmos.color = Color.green;
 
-        for (int i = 0; i < mesh.vertexCount; i++)
+        /*for (int i = 0; i < mesh.vertexCount; i++)
         {
             Gizmos.DrawLine(transform.TransformPoint(mesh.vertices[i]), transform.TransformPoint(mesh.vertices[i] + mesh.normals[i]));
-        }
+        }*/
 
-        Gizmos.DrawSphere(transform.TransformPoint(origin), 0.05f);*/
+        //Gizmos.DrawSphere(transform.TransformPoint(origin), 0.03f);
 
         /*for (int i = 0; i < 6; i++)
         {
@@ -228,15 +241,22 @@ public class TestMeshRayCast : MonoBehaviour
             Gizmos.DrawSphere(transform.TransformPoint(verticesConnectedToQueryPoint[i]), 0.05f);
         }*/
 
-        /*List<int> stronglyConnected = colliderTriangles[index];
+        Gizmos.color = Color.red;
+        List<int> stronglyConnected = colliderTriangles[index];
 
         for (int i = 0; i < stronglyConnected.Count; i++)
-         {
-             for (int j = 0; j < 3; j++)
-             {
-                 Gizmos.DrawSphere(transform.TransformPoint(mesh.vertices[meshTriangles[stronglyConnected[i]][j]]), 0.05f);
-             }
-        }*/
+        {
+            for (int j = 0; j < 3; j++)
+            {
+                Gizmos.DrawSphere(transform.TransformPoint(mesh.vertices[meshTriangles[stronglyConnected[i]][j]]), 0.01f);
+            }
+        }
+
+        Gizmos.color = Color.green;
+        Gizmos.DrawSphere(transform.TransformPoint(colliderVertices[13][testIndex]), 0.01f);
+        //Gizmos.DrawSphere(transform.TransformPoint(colliderVertices[testIndex][1]), 0.01f);
+        //Gizmos.DrawSphere(transform.TransformPoint(colliderVertices[testIndex][2]), 0.01f);
+        //Gizmos.DrawSphere(transform.TransformPoint(colliderVertices[testIndex][3]), 0.01f);
 
         //Gizmos.color = Color.blue;
         //Gizmos.DrawSphere(transform.TransformPoint(mesh.vertices[312]), 0.05f);
@@ -255,7 +275,7 @@ public class TestMeshRayCast : MonoBehaviour
             {
                 for (int k = 0; k < 3; k++)
                 {
-                    Gizmos.DrawCube(transform.TransformPoint(mesh.vertices[meshTriangles[colliderTriangles[i][j]][k]]), new Vector3(0.05f, 0.05f, 0.05f));
+                    //Gizmos.DrawCube(transform.TransformPoint(mesh.vertices[meshTriangles[colliderTriangles[i][j]][k]]), new Vector3(0.05f, 0.05f, 0.05f));
                     notDrawn.Remove(mesh.vertices[meshTriangles[colliderTriangles[i][j]][k]]);
                     notDrawnInts.Remove(meshTriangles[colliderTriangles[i][j]][k]);
                 }
@@ -270,6 +290,17 @@ public class TestMeshRayCast : MonoBehaviour
         }
 
         Debug.Log(notDrawn.Count);
-        DebugHelper.PrintList(notDrawnInts)*/;
+        DebugHelper.PrintList(notDrawnInts);*/
+
+        /*Gizmos.color = Color.blue;
+        Gizmos.DrawSphere(transform.TransformPoint(meshManager.testVertices[0]), 0.05f);
+        Gizmos.DrawSphere(transform.TransformPoint(meshManager.testVertices[1]), 0.05f);
+        Gizmos.DrawSphere(transform.TransformPoint(meshManager.testVertices[2]), 0.05f);
+        Gizmos.color = Color.green;
+        Gizmos.DrawSphere(transform.TransformPoint(meshManager.testVertices[3]), 0.05f);
+        Gizmos.DrawSphere(transform.TransformPoint(meshManager.testVertices[4]), 0.05f);
+        Gizmos.DrawSphere(transform.TransformPoint(meshManager.testVertices[5]), 0.05f);
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawSphere(transform.TransformPoint(meshManager.testVertices[testIndex]), 0.05f);*/
     }
 }

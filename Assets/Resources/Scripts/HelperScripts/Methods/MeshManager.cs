@@ -20,6 +20,8 @@ namespace HelperScripts.Methods
         public List<List<int>> stronglyConnectedTriangles = new List<List<int>>();
 
         public List<List<int>> colliderTriangles = new List<List<int>>();
+        public List<List<int>> triangleConnectionNodes = new List<List<int>>();
+        public List<Vector3> testVertices = new List<Vector3>();
 
         public MeshManager(Mesh queryMesh)
         {
@@ -61,8 +63,6 @@ namespace HelperScripts.Methods
             }
 
             triangleDetails = trianglesInfo;
-            //DebugHelper.PrintListList(triangleDetails, false, true);
-            //GetVertexPath(new Vector3(0.5f, -0.5f, 0.5f), new Vector3(0.5f, 0.5f, 0.5f));
 
             // Loop through each triangle
             for (int i = 0; i < triangleDetails.Count; i++)
@@ -119,6 +119,7 @@ namespace HelperScripts.Methods
                 List<int> currentTriangle = meshTriangles[i];
                 float largestConnectionDistance = 0;
                 List<int> largestConnectionNodes = new List<int>();
+                List<int> triangleConnectionNodePair = new List<int>();
 
                 for (int j = 0; j < meshTriangles.Count; j++)
                 {
@@ -140,85 +141,75 @@ namespace HelperScripts.Methods
                     {
                         connectedNodes.Add(connections);
 
-                        float distanceBetweenConnections = Vector3.Distance(vertices[connections[0]], vertices[connections[1]]);
-
-                        if (distanceBetweenConnections > largestConnectionDistance)
-                        {
-                            largestConnectionDistance = distanceBetweenConnections;
-                            largestConnectionNodes = new List<int> { i, j };
-                        }
+                        triangleConnectionNodePair = connections;
+                        largestConnectionNodes = new List<int> { i, j };
+                        stronglyConnectedTriangles.Add(largestConnectionNodes);
+                        triangleConnectionNodes.Add(triangleConnectionNodePair);
                     }
                 }
-
-                if (largestConnectionNodes.Count == 2)
-                {
-                    stronglyConnectedTriangles.Add(largestConnectionNodes);
-                }             
             }
 
             for (int i = 0; i < stronglyConnectedTriangles.Count; i++)
             {
-                List<int> triangleIndexes = stronglyConnectedTriangles[i];
-                List<int> triangle1 = meshTriangles[triangleIndexes[0]];
-                List<int> triangle2 = meshTriangles[triangleIndexes[1]];
-                List<int> connections = new List<int>();
+                List<Vector3> triangle1Vertices = triangleDetails[stronglyConnectedTriangles[i][0]];
+                List<Vector3> triangle2Vertices = triangleDetails[stronglyConnectedTriangles[i][1]];
 
-                for (int j = 0; j < 3; j++)
+                List<int> triangle1Indexes = meshTriangles[stronglyConnectedTriangles[i][0]];
+                List<int> triangle2Indexes = meshTriangles[stronglyConnectedTriangles[i][1]];
+                List<int> polygonIndexes = new List<int>();
+
+                for (int j = 0; j < 6; j++)
                 {
-                    if (triangle2.Contains(triangle1[j]))
+                    if (j <= 2)
                     {
-                        connections.Add(triangle1[j]);
+                        polygonIndexes.Add(triangle1Indexes[j]);
+                    }
+                    else
+                    {
+                        polygonIndexes.Add(triangle2Indexes[j - 3]);
                     }
                 }
 
-                float distanceBetweenConnections = Vector3.Distance(vertices[connections[0]], vertices[connections[1]]);
+                List<int> connectedNodesIndexes = polygonIndexes.GroupBy(s => s).SelectMany(grp => grp.Skip(1)).Distinct().ToList();
+                polygonIndexes = polygonIndexes.Distinct().ToList();
 
-                float distance1 = Vector3.Distance(vertices[triangle1[0]], vertices[triangle1[1]]);
-                float distance2 = Vector3.Distance(vertices[triangle1[0]], vertices[triangle1[2]]);
-                float distance3 = Vector3.Distance(vertices[triangle1[1]], vertices[triangle1[2]]);
+                Vector3 a1 = vertices[connectedNodesIndexes[0]];
+                Vector3 b1 = vertices[triangle1Indexes.Except(connectedNodesIndexes).ToList()[0]];
+                Vector3 c1 = vertices[connectedNodesIndexes[1]];
+                Vector3 a2 = vertices[connectedNodesIndexes[0]];
+                Vector3 b2 = vertices[triangle2Indexes.Except(connectedNodesIndexes).ToList()[0]];
+                Vector3 c2 = vertices[connectedNodesIndexes[1]];
 
-                if ((distanceBetweenConnections < distance1) || (distanceBetweenConnections < distance2) || (distanceBetweenConnections < distance3))
+                float abcAngle1 = MathFunctions.GetVectorInternalAngle(b1, c1, a1);
+                float bcaAngle1 = MathFunctions.GetVectorInternalAngle(c1, a1, b1);
+                float cabAngle1 = MathFunctions.GetVectorInternalAngle(a1, b1, c1);
+
+                float abcAngle2 = MathFunctions.GetVectorInternalAngle(b2, c2, a2);
+                float bcaAngle2 = MathFunctions.GetVectorInternalAngle(c2, a2, b2);
+                float cabAngle2 = MathFunctions.GetVectorInternalAngle(a2, b2, c2);
+
+                float polygonABC = abcAngle1;
+                float polygonBCD = bcaAngle1 + bcaAngle2;
+                float polygonCDA = abcAngle2;
+                float polygonDAB = cabAngle1 + cabAngle2;
+
+                List<float> polygonInternalAngles = new List<float> { polygonABC, polygonBCD, polygonCDA, polygonDAB };
+                bool approximatelySquare = true;
+
+                for (int j = 0; j < 4; j++)
                 {
-                    // Don't add this to the list
+                    if (Mathf.Abs(90 - polygonInternalAngles[j]) > 20)
+                    {
+                        approximatelySquare = false;
+                        break;
+                    }
                 }
-                else
+
+                if (approximatelySquare == true)
                 {
                     colliderTriangles.Add(stronglyConnectedTriangles[i]);
                 }
             }
-
-            #region old
-            /*for (int i = 0; i < stronglyConnectedTriangles.Count; i++)
-            {
-                List<int> triangleIndexes = stronglyConnectedTriangles[i];
-                List<int> triangle1 = meshTriangles[triangleIndexes[0]];
-                List<int> triangle2 = meshTriangles[triangleIndexes[1]];
-                List<int> connections = new List<int>();
-
-                for (int j = 0; j < 3; j++)
-                {
-                    if (triangle2.Contains(triangle1[j]))
-                    {
-                        connections.Add(triangle1[j]);
-                    }
-                }
-
-                float distanceBetweenConnections = Vector3.Distance(vertices[connections[0]], vertices[connections[1]]);
-
-                float distance1 = Vector3.Distance(vertices[triangle1[0]], vertices[triangle1[1]]);
-                float distance2 = Vector3.Distance(vertices[triangle1[0]], vertices[triangle1[2]]);
-                float distance3 = Vector3.Distance(vertices[triangle1[1]], vertices[triangle1[2]]);
-
-                if ((distanceBetweenConnections < distance1) || (distanceBetweenConnections < distance2) || (distanceBetweenConnections < distance3))
-                {
-                    // Don't add this to the list
-                }
-                else
-                {
-                    colliderTriangles.Add(stronglyConnectedTriangles[i]);
-                }
-            }*/
-            #endregion
 
             List<List<int>> processedColliderTriangles = new List<List<int>>();
             List<int> duplicatedIndexes = new List<int>();
