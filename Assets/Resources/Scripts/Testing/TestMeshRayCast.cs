@@ -23,8 +23,9 @@ public class TestMeshRayCast : MonoBehaviour
     public float colliderHeight = 0.01f;
     private MeshManager meshManager;
 
-    private GameObject p;
-    private List<Vector3> stuff = new List<Vector3>();
+    private List<Vector3> colliderVector;
+    private List<Vector3> sideVector;
+    private List<Vector3> extraVector;
 
     // Start is called before the first frame update
     void Start()
@@ -154,7 +155,9 @@ public class TestMeshRayCast : MonoBehaviour
             Vector3 yVector = intermediateObject.transform.TransformDirection(unconnectedNodes[0] - connectedNodes[0]).normalized;
             Vector3 xVector = intermediateObject.transform.TransformDirection(connectedNodes[1] - unconnectedNodes[0]).normalized;
             Vector3 colliderUp = colliderContainer.transform.TransformDirection(colliderContainer.transform.up).normalized;
-            float value = Vector3.Dot(xVector, yVector);
+            //colliderVector = new List<Vector3> { colliderContainer.transform.position, colliderUp };
+            //sideVector = new List<Vector3> { unconnectedNodes[0], xVector };
+            float value = Vector3.Dot(colliderContainer.transform.TransformDirection(colliderContainer.transform.up).normalized, colliderUp);
 
             //float boxColliderSizeX = (Vector3.Distance(colliderVertices[i][0], colliderVertices[i][1]) + Vector3.Distance(colliderVertices[i][2], colliderVertices[i][3])) / 2;
             //float boxColliderSizeY = (Vector3.Distance(colliderVertices[i][1], colliderVertices[i][2]) + Vector3.Distance(colliderVertices[i][3], colliderVertices[i][0])) / 2;
@@ -166,11 +169,22 @@ public class TestMeshRayCast : MonoBehaviour
             Vector3 vec3 = intermediateObject.transform.TransformDirection(unconnectedNodes[1] - connectedNodes[1]);
             Vector3 vec4 = intermediateObject.transform.TransformDirection(connectedNodes[0] - unconnectedNodes[1]);
 
+            if (i == 34)
+            {
+                // green
+                colliderVector = new List<Vector3> { Vector3.zero, this.transform.TransformDirection(boxCollider.transform.up) };
+                // blue
+                sideVector = new List<Vector3> { Vector3.zero, this.transform.TransformDirection(boxCollider.transform.forward) };
+                // red
+                extraVector = new List<Vector3> { Vector3.zero, this.transform.TransformDirection(boxCollider.transform.right) };
+                Debug.Log(Vector3.Dot(colliderVector[1], sideVector[1]));
+            }
+
             List<Vector3> sideVectors = new List<Vector3> { vec1, vec2, vec3, vec4 };
-            List<float> slopeDirections = new List<float> { Mathf.Abs(Vector3.Dot(vec1.normalized, colliderContainer.transform.TransformDirection(colliderContainer.transform.up))),
-                                                            Mathf.Abs(Vector3.Dot(vec2.normalized, colliderContainer.transform.TransformDirection(colliderContainer.transform.up))),
-                                                            Mathf.Abs(Vector3.Dot(vec3.normalized, colliderContainer.transform.TransformDirection(colliderContainer.transform.up))),
-                                                            Mathf.Abs(Vector3.Dot(vec4.normalized, colliderContainer.transform.TransformDirection(colliderContainer.transform.up))) };
+            List<float> slopeDirections = new List<float> { Mathf.Abs(Vector3.Dot(vec1.normalized, this.transform.TransformDirection(colliderContainer.transform.up))),
+                                                            Mathf.Abs(Vector3.Dot(vec2.normalized, this.transform.TransformDirection(colliderContainer.transform.up))),
+                                                            Mathf.Abs(Vector3.Dot(vec3.normalized, this.transform.TransformDirection(colliderContainer.transform.up))),
+                                                            Mathf.Abs(Vector3.Dot(vec4.normalized, this.transform.TransformDirection(colliderContainer.transform.up))) };
 
             List<float> xSidesLengths = new List<float>();
             List<float> ySidesLengths = new List<float>();
@@ -187,8 +201,8 @@ public class TestMeshRayCast : MonoBehaviour
                 }
             }
 
-            boxCollider.size = new Vector3(boxColliderSizeX, boxColliderSizeY, colliderHeight);
-            //boxCollider.size = new Vector3((xSidesLengths[0] + xSidesLengths[1]) / 2, (ySidesLengths[0] + ySidesLengths[1]) / 2, colliderHeight);
+            //boxCollider.size = new Vector3(boxColliderSizeX, boxColliderSizeY, colliderHeight);
+            boxCollider.size = new Vector3((xSidesLengths[0] + xSidesLengths[1]) / 2, (ySidesLengths[0] + ySidesLengths[1]) / 2, colliderHeight);
 
             Vector3 x1 = colliderVertices[i][0] - colliderVertices[i][1];
             Vector3 y1 = colliderVertices[i][0] - colliderVertices[i][3];
@@ -206,18 +220,17 @@ public class TestMeshRayCast : MonoBehaviour
             colliders.Add(boxCollider);
 
             //intermediateObject.SetActive(false);
-
-            if (i == 1)
-            {
-                p = intermediateObject;
-            }
         }
     }
 
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.green;
-
+        Gizmos.DrawLine(colliderVector[0], colliderVector[1]);
+        Gizmos.color = Color.blue;
+        Gizmos.DrawLine(sideVector[0], sideVector[1]);
+        Gizmos.color = Color.red;
+        Gizmos.DrawLine(extraVector[0], extraVector[1]);
         /*for (int i = 0; i < mesh.vertexCount; i++)
         {
             Gizmos.DrawLine(transform.TransformPoint(mesh.vertices[i]), transform.TransformPoint(mesh.vertices[i] + mesh.normals[i]));
