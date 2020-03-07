@@ -43,7 +43,7 @@ public class BonnetDeform : MonoBehaviour
         mesh = this.GetComponent<MeshFilter>().mesh;
         vertices = mesh.vertices;
 
-        meshManager = new MeshManager(mesh);
+        meshManager = new MeshManager(mesh, this.gameObject.name);
         connectedVertices = meshManager.GetConnectedVertices();
 
         weakestVertex = GetWeakestVertex();

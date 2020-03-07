@@ -14,7 +14,14 @@ public class CollisionHandler : MonoBehaviour
 
     private void Start()
     {
-        objectMass = this.GetComponent<Rigidbody>().mass;
+        try
+        {
+            objectMass = this.GetComponent<Rigidbody>().mass;
+        }
+        catch (MissingComponentException)
+        {
+            objectMass = 10;
+        }
     }
 
     private void OnCollisionEnter(Collision collision)
@@ -23,8 +30,12 @@ public class CollisionHandler : MonoBehaviour
         {
             collisionObjectToScript.Add(collision.gameObject, collision.gameObject.GetComponent<PlasticDeformer>());
         }
+        else if (collision.gameObject.GetComponentInParent<PlasticDeformer>() != null)
+        {
+            collisionObjectToScript.Add(collision.gameObject, collision.gameObject.GetComponentInParent<PlasticDeformer>());
+        }
 
-        Debug.Log(collision.relativeVelocity.magnitude * objectMass);
+        //Debug.Log(collision.relativeVelocity.magnitude * objectMass);
 
         try
         {

@@ -79,7 +79,7 @@ public class PlasticDeformer : Deformer
 
         //ComputeShaderSetup();
 
-        MeshManager meshManager = new MeshManager(this.GetComponent<MeshFilter>());
+        MeshManager meshManager = new MeshManager(this.GetComponent<MeshFilter>(), this.gameObject.name);
         //test = meshManager.CalculateMeshStrengths();
         //meshManager.DrawColliders();
     }

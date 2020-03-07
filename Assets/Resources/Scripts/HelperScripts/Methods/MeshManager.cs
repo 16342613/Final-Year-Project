@@ -18,26 +18,27 @@ namespace HelperScripts.Methods
         public Dictionary<Vector3, List<Vector3>> connectedVertices;
         public List<List<int>> meshTriangles = new List<List<int>>();
         public List<List<int>> stronglyConnectedTriangles = new List<List<int>>();
-
         public List<List<int>> colliderTriangles = new List<List<int>>();
         public List<List<int>> triangleConnectionNodes = new List<List<int>>();
-        public List<Vector3> testVertices = new List<Vector3>();
+        public string objectName;
 
-        public MeshManager(Mesh queryMesh)
+        public MeshManager(Mesh queryMesh, string objectName)
         {
             this.queryMesh = queryMesh;
             this.vertices = queryMesh.vertices;
             this.triangles = queryMesh.triangles;
             this.normals = queryMesh.normals;
+            this.objectName = objectName;
         }
 
-        public MeshManager(MeshFilter meshObject)
+        public MeshManager(MeshFilter meshObject, string objectName)
         {
             this.queryMesh = meshObject.mesh;
             this.meshParentObject = meshObject.gameObject;
             this.vertices = queryMesh.vertices;
             this.triangles = queryMesh.triangles;
             this.normals = queryMesh.normals;
+            this.objectName = objectName;
         }
 
         /// <summary>

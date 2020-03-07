@@ -42,7 +42,7 @@ public class BoundingVolumeHierarchy : MonoBehaviour
         //DebugHelper.PrintArray(vertices.ToList().Cast<object>().ToArray(), true);
         //DebugHelper.PrintArray(triangles.ToList().Cast<object>().ToArray());
 
-        MeshManager meshManager = new MeshManager(mesh);
+        MeshManager meshManager = new MeshManager(mesh, this.gameObject.name);
         connectVertices = meshManager.GetConnectedVertices();
         //DebugHelper.PrintListList((List<List<object>>) vertexDetails["trianglesInfo"]);
         //DebugHelper.PrintConnectedVertices(connectVertices, true);

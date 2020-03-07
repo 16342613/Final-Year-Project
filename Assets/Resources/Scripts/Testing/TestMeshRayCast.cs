@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Debugger;
@@ -28,6 +29,7 @@ public class TestMeshRayCast : MonoBehaviour
     private List<Vector3> extraVector;
     private List<Vector3> hypotenuseVector;
     private List<Vector3> colliderUpVector;
+    private BVH_Tree bvhTree;
 
     // Start is called before the first frame update
     void Start()
@@ -37,19 +39,23 @@ public class TestMeshRayCast : MonoBehaviour
         //meshCollider = GetComponent<MeshCollider>();
         //origin = meshCollider.bounds.center; //+ new Vector3(1, 0, 0);
 
-        meshManager = new MeshManager(this.GetComponent<MeshFilter>());
+        meshManager = new MeshManager(this.GetComponent<MeshFilter>(), this.gameObject.name);
         connectedVertices = meshManager.GetConnectedVertices();
 
         meshTriangles = meshManager.GetMeshTriangles();
         colliderTriangles = meshManager.GetStronglyConnectedTriangles();
 
         triangleDetails = meshManager.triangleDetails;
+        //InvokeRepeating("DrawColliders", 0f, 2f);
         DrawColliders();
+        //BVH();
     }
 
     // Update is called once per frame
     void Update()
     {
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
         //DoRayCast();
         //Debug.Log(p.transform.localPosition);
     }
@@ -100,6 +106,19 @@ public class TestMeshRayCast : MonoBehaviour
 
     public void DrawColliders()
     {
+        colliders.Clear();
+        colliderVertices.Clear();
+
+        try
+        {
+            Destroy(this.transform.Find("Colliders").gameObject);
+        }
+        catch(NullReferenceException ex)
+        {
+
+        }
+
+
         GameObject child = new GameObject();
         child.name = "Colliders";
         //child.hideFlags = HideFlags.HideInHierarchy;
@@ -144,7 +163,6 @@ public class TestMeshRayCast : MonoBehaviour
             colliderContainer.transform.rotation = Quaternion.FromToRotation(colliderContainer.transform.forward, averageNormal);
 
             BoxCollider boxCollider = colliderContainer.AddComponent<BoxCollider>();
-            //boxCollider.hideFlags = HideFlags.HideInInspector;
             colliderContainer.transform.localRotation = Quaternion.Euler(colliderContainer.transform.localRotation.eulerAngles.x, colliderContainer.transform.localRotation.eulerAngles.y, 0);
 
             Vector3 yVector = intermediateObject.transform.TransformDirection(unconnectedNodes[0] - connectedNodes[0]).normalized;
@@ -212,6 +230,33 @@ public class TestMeshRayCast : MonoBehaviour
             colliders.Add(boxCollider);
 
             //intermediateObject.SetActive(false);
+        }
+    }
+
+    private void BVH()
+    {
+        BoxCollider rootCollider = this.gameObject.AddComponent<BoxCollider>();
+        rootCollider.center = mesh.bounds.center;
+        rootCollider.size = mesh.bounds.extents * 2;
+
+        BoundingBox root = new BoundingBox(rootCollider);
+        bvhTree = new BVH_Tree(new BVH_Node(root, null, true));
+        RecursivelySplitBVH(rootCollider, 0);
+    }
+
+    private void RecursivelySplitBVH(BoxCollider parentCollider, int currentDepth)
+    {
+        if (currentDepth <= 2)
+        {
+            Vector3 parentCenter = parentCollider.center;
+            Vector3 parentSize = parentCollider.size;
+
+            BoxCollider childCollider = (BoxCollider)gameObject.AddComponent<BoxCollider>();
+            childCollider.hideFlags = HideFlags.HideInInspector;
+            childCollider.center = new Vector3(parentCenter.x + 0.25f * parentSize.x, parentCenter.y + 0.25f * parentSize.y, parentCenter.z + 0.25f * parentSize.z);
+            childCollider.size = new Vector3(0.5f * parentSize.x, 0.5f * parentSize.y, 0.5f * parentSize.z);
+
+            RecursivelySplitBVH(childCollider, currentDepth + 1);
         }
     }
 
