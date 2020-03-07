@@ -9,6 +9,7 @@ public class CannonScript : MonoBehaviour
     private Vector3 aimAt;
     private int frameCount = 0;
     private bool canFire;
+    public float power = 50f;
 
     // Start is called before the first frame update
     void Start()
@@ -58,7 +59,7 @@ public class CannonScript : MonoBehaviour
         GameObject firedAmmo = Instantiate(ammo, transform.position, Quaternion.identity);
         firedAmmo.transform.LookAt(aimAt);
 
-        firedAmmo.GetComponent<Rigidbody>().AddForce(firedAmmo.transform.forward * 50f);
+        firedAmmo.GetComponent<Rigidbody>().AddForce(firedAmmo.transform.forward * power);
 
         firedAmmos.Add(firedAmmo);
 

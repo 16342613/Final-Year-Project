@@ -41,6 +41,26 @@ namespace HelperScripts.Methods
             this.objectName = objectName;
         }
 
+        public List<List<Vector3>> RecalculateTriangleDetails(Mesh mesh)
+        {
+            this.queryMesh = mesh;
+            this.vertices = queryMesh.vertices;
+
+            triangleDetails.Clear();
+         
+            for (int i = 0; i < (triangles.Length / 3); i++)
+            {
+                triangleDetails.Add(new List<Vector3>());
+
+                for (int j = 0; j < 3; j++)
+                {
+                    triangleDetails[i].Add(vertices[triangles[j + (i * 3)]]);
+                }
+            }
+
+            return triangleDetails;
+        }
+
         /// <summary>
         /// Get the vertices which are connected to each other via edges
         /// </summary>
