@@ -28,19 +28,48 @@ public class CollisionHandler : MonoBehaviour
     {
         if (collision.gameObject.GetComponent<PlasticDeformer>() != null)
         {
-            collisionObjectToScript.Add(collision.gameObject, collision.gameObject.GetComponent<PlasticDeformer>());
+            try
+            {
+                collisionObjectToScript.Add(collision.gameObject, collision.gameObject.GetComponent<PlasticDeformer>());
+            }
+            catch (ArgumentException)
+            {
+
+            }
         }
         else if (collision.gameObject.GetComponentInParent<PlasticDeformer>() != null)
         {
-            collisionObjectToScript.Add(collision.gameObject, collision.gameObject.GetComponentInParent<PlasticDeformer>());
+            try
+            {
+                collisionObjectToScript.Add(collision.gameObject, collision.gameObject.GetComponentInParent<PlasticDeformer>());
+            }
+            catch (ArgumentException)
+            {
+
+            }
         }
 
         //Debug.Log(collision.relativeVelocity.magnitude * objectMass);
 
         try
         {
-            collisionObjectToScript[collision.gameObject].contactInfo.Add(this.gameObject, collision.contacts);
-            collisionObjectToScript[collision.gameObject].collisionInfo.Add(this.gameObject, collision.relativeVelocity.magnitude * objectMass);
+            try
+            {
+                collisionObjectToScript[collision.gameObject].contactInfo.Add(this.gameObject, collision.contacts);
+            }
+            catch (ArgumentException)
+            {
+                collisionObjectToScript[collision.gameObject].contactInfo[this.gameObject] = collision.contacts;
+            }
+
+            try
+            {
+                collisionObjectToScript[collision.gameObject].collisionInfo.Add(this.gameObject, collision.relativeVelocity.magnitude * objectMass);
+            }
+            catch (ArgumentException)
+            {
+                collisionObjectToScript[collision.gameObject].collisionInfo[this.gameObject] =  collision.relativeVelocity.magnitude * objectMass;
+            }
         }
         catch (KeyNotFoundException)
         {

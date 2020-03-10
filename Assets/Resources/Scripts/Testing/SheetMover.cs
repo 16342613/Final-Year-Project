@@ -13,6 +13,6 @@ public class SheetMover : MonoBehaviour
 
     void Update()
     {
-        rigidBody.AddForce(1, 0, 0);
+        rigidBody.AddForce(-1, 0, 0);
     }
 }
