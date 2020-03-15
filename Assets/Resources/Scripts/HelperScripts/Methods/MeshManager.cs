@@ -16,10 +16,14 @@ namespace HelperScripts.Methods
         public List<List<Vector3>> triangleDetails;
         public GameObject meshParentObject;
         public Dictionary<Vector3, List<Vector3>> connectedVertices;
-        public List<List<int>> meshTriangles = new List<List<int>>();
+        public List<List<int>> meshTriangles = new List<List<int>>();   // The vertex indexes of each vertex in a triangle
         public List<List<int>> stronglyConnectedTriangles = new List<List<int>>();
         public List<List<int>> colliderTriangles = new List<List<int>>();
         public List<List<int>> triangleConnectionNodes = new List<List<int>>();
+
+        public List<List<int>> squareVertices = new List<List<int>>();
+        public List<List<int>> connectedSquareNodes = new List<List<int>>();
+        public List<List<int>> unconnectedSquareNodes = new List<List<int>>();
         public string objectName;
 
         public MeshManager(Mesh queryMesh, string objectName)
@@ -234,7 +238,6 @@ namespace HelperScripts.Methods
 
             List<List<int>> processedColliderTriangles = new List<List<int>>();
             List<int> duplicatedIndexes = new List<int>();
-            DebugHelper.PrintListList(colliderTriangles, false, true);
 
             for (int i = 0; i < colliderTriangles.Count; i++)
             {
@@ -258,10 +261,20 @@ namespace HelperScripts.Methods
                 if (duplicatedIndexes.Contains(i) == false)
                 {
                     processedColliderTriangles.Add(colliderTriangles[i]);
+
+                    List<int> colliderVertices = new List<int>();
+                    colliderVertices.AddRange(meshTriangles[processedColliderTriangles.Last()[0]]);
+                    colliderVertices.AddRange(meshTriangles[processedColliderTriangles.Last()[1]]);
+                    List<int> colliderVerticesCopy = new List<int>(colliderVertices);
+                    connectedSquareNodes.Add(colliderVertices.GroupBy(s => s).SelectMany(grp => grp.Skip(1)).Distinct().ToList());
+                    unconnectedSquareNodes.Add(colliderVerticesCopy.Except(connectedSquareNodes.Last()).ToList());
+
+                    squareVertices.Add(new List<int>());
+                    squareVertices.Last().AddRange(unconnectedSquareNodes.Last());
+                    squareVertices.Last().AddRange(connectedSquareNodes.Last());
                 }
             }
 
-            DebugHelper.PrintListList(processedColliderTriangles, false, true);
             colliderTriangles = processedColliderTriangles;
 
             return processedColliderTriangles;

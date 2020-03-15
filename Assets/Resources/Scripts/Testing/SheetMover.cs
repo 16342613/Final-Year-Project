@@ -5,6 +5,7 @@ using UnityEngine;
 public class SheetMover : MonoBehaviour
 {
     private Rigidbody rigidBody;
+    public int force = -5;
 
     void Start()
     {
@@ -13,6 +14,6 @@ public class SheetMover : MonoBehaviour
 
     void Update()
     {
-        rigidBody.AddForce(-1, 0, 0);
+        rigidBody.AddForce(force, 0, 0);
     }
 }
