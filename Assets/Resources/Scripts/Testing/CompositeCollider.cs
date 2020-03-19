@@ -13,7 +13,7 @@ public class CompositeCollider : MonoBehaviour
     private Vector3[] directions = new Vector3[6];
     private Dictionary<Vector3, List<Vector3>> connectedVertices;
     private Mesh mesh;
-    public int index = 58;
+    public int index = 0;
     public int testIndex = 0;
     public List<List<int>> meshTriangles;
     public List<List<int>> colliderTriangles;
@@ -522,19 +522,25 @@ public class CompositeCollider : MonoBehaviour
     public IEnumerator UpdateColliderGroup(List<int> colliderIndexes, int frameSpread = 1)
     {
         finishedRoutine = false;
-        var indexInterval = Math.Floor(colliderTriangles.Count * (((double)1) / frameSpread));
+        var indexInterval = Math.Floor(colliderIndexes.Count * (((double)1) / frameSpread));
 
         for (int i = 0; i < colliderIndexes.Count; i++)
         {
-            UpdateCollider(i);
+            UpdateCollider(colliderIndexes[i]);
+            index++;
 
-            Debug.Log("INTERVAL IS " + indexInterval);
+            if (i == 0)
+            {
+                continue;
+            }
+
             if (i % indexInterval == 0)
             {
                 yield return null;
             }
         }
 
+        index = 0;
         finishedRoutine = true;
     }
 

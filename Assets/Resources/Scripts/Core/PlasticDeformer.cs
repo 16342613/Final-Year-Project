@@ -205,14 +205,15 @@ public class PlasticDeformer : Deformer
 
         collidersToUpdate = collidersToUpdate.Distinct().ToList();
 
-        if (compositeCollider.finishedRoutine == true)
+        if (compositeCollider.finishedRoutine == true && collidersToUpdate.Count > 0)
         {
-            StartCoroutine(compositeCollider.UpdateColliderGroup(collidersToUpdate, 20));
+            Debug.Log("TO UPDATE : " + collidersToUpdate.Count);
+            StartCoroutine(compositeCollider.UpdateColliderGroup(collidersToUpdate, 5));
         }
-        
+        Debug.Log(compositeCollider.index);
         stopWatch.Stop();
 
-        Debug.Log(collidersToUpdate.Count + " ; " + stopWatch.Elapsed.Milliseconds);
+        //Debug.Log(collidersToUpdate.Count + " ; " + stopWatch.Elapsed.Milliseconds);
         count = 0;
     }
 
@@ -304,12 +305,23 @@ public class PlasticDeformer : Deformer
     public void PlasticDeformVertexColliders(int vertexIndex, Vector3[] forceOrigins, float[] forces)
     {
         Vector3 vertVel = Vector3.zero;
+        int noForceCount = 0;
 
         for (int i = 0; i < forceOrigins.Length; i++)
         {
             float distance = Vector3.Distance(deformedVertices[vertexIndex], forceOrigins[i]);
 
-            if (distance > range) continue;
+            if (distance > range)
+            {
+                noForceCount++;
+
+                if (noForceCount == (forceOrigins.Length))
+                {
+                    return;
+                }
+
+                continue;
+            }
 
             float forceAtVertex = forces[i] / (meshStrength + 5 * (distance * distance));
             float vertexAcceleration = forceAtVertex / vertexMass;

@@ -331,7 +331,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!108 &443006389
 Light:
   m_ObjectHideFlags: 0
@@ -901,7 +901,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   origin: {x: 0, y: 0, z: 0}
-  index: 81
+  index: 0
   testIndex: 0
   intermediateObjects: []
   colliderContainers: []
@@ -925,7 +925,7 @@ MonoBehaviour:
   springForce: 20
   damping: 5
   returnToRestingForm: 0
-  range: 1
+  range: 0.5
   debug: 0
 --- !u!54 &826452452
 Rigidbody:
@@ -1103,7 +1103,7 @@ PrefabInstance:
     - target: {fileID: -927199367670048503, guid: 529e743f63d524443890c92feb867d30,
         type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6531144289327318754, guid: 529e743f63d524443890c92feb867d30,
         type: 3}
@@ -1285,7 +1285,7 @@ PrefabInstance:
     - target: {fileID: 4169778844143480087, guid: 10035f1f0937848fd888aa4517b5bf32,
         type: 3}
       propertyPath: power
-      value: 500
+      value: 300
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 10035f1f0937848fd888aa4517b5bf32, type: 3}
@@ -2442,7 +2442,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!33 &8325509993457705431
 MeshFilter:
   m_ObjectHideFlags: 0
