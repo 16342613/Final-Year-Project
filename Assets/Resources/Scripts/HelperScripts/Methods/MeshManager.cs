@@ -26,6 +26,8 @@ namespace HelperScripts.Methods
         public List<List<int>> unconnectedSquareNodes = new List<List<int>>();
         public string objectName;
 
+        public Dictionary<int, List<int>> vertexSquareMapping = new Dictionary<int, List<int>>();
+
         public MeshManager(Mesh queryMesh, string objectName)
         {
             this.queryMesh = queryMesh;
@@ -51,7 +53,7 @@ namespace HelperScripts.Methods
             this.vertices = queryMesh.vertices;
 
             triangleDetails.Clear();
-         
+
             for (int i = 0; i < (triangles.Length / 3); i++)
             {
                 triangleDetails.Add(new List<Vector3>());
@@ -115,12 +117,18 @@ namespace HelperScripts.Methods
             return connectedVertices;
         }
 
+        /// <summary>
+        /// A method that gets the cleans up Mesh.triangles into a nice 2D list
+        /// </summary>
+        /// <returns></returns>
         public List<List<int>> GetMeshTriangles()
         {
+            // Loop through all of the Mesh.triangles array
             for (int i = 0; i < triangles.Length; i++)
             {
                 if (i % 3 == 0)
                 {
+                    // Add a new entry to the 2D list, since this is a new triangle
                     meshTriangles.Add(new List<int>());
                 }
 
@@ -276,8 +284,26 @@ namespace HelperScripts.Methods
             }
 
             colliderTriangles = processedColliderTriangles;
+            CalculateVertexSquareMapping();
 
             return processedColliderTriangles;
+        }
+
+        private void CalculateVertexSquareMapping()
+        {
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                vertexSquareMapping.Add(i, new List<int>());
+
+                for (int j = 0; j < squareVertices.Count; j++)
+                {
+                    if (squareVertices[j].Contains(i))
+                    {
+                        vertexSquareMapping[i].Add(j);
+
+                    }
+                }
+            }
         }
 
         public Vector3 GetClosestVertexToPoint(Vector3 queryPoint, bool convertToLocalSpace = false, Transform objectTransform = null)

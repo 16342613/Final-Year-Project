@@ -28,8 +28,9 @@ public class CompositeCollider : MonoBehaviour
     public bool ready = false;
     private float colliderHeight = 0.0001f;
     private MeshManager meshManager;
-
+    public Dictionary<int, List<int>> vertexSquareMapping;
     private BVH_Tree bvhTree;
+    public bool finishedRoutine = true;
 
     List<_SideOrder> sideOrders = new List<_SideOrder>();
 
@@ -58,7 +59,7 @@ public class CompositeCollider : MonoBehaviour
         squareVertices = meshManager.squareVertices;
         connectedSquareNodes = meshManager.connectedSquareNodes;
         unconnectedSquareNodes = meshManager.unconnectedSquareNodes;
-
+        vertexSquareMapping = meshManager.vertexSquareMapping;
         DrawCollidersInitial();
         ready = true;
         //BVH();
@@ -77,11 +78,19 @@ public class CompositeCollider : MonoBehaviour
         {
             //StartCoroutine("DrawColliders");
             //DrawColliders();
-            for (int i = 0; i < colliderContainers.Count; i++)
+            //DoRayCast();
+            //Debug.Log(p.transform.localPosition);
+
+            for (int i = 0; i < squareVertices.Count; i++)
             {
                 UpdateCollider(i);
             }
-            //DrawColliders();
+        }
+
+        if (Input.GetKeyDown(KeyCode.K))
+        {
+            //StartCoroutine("DrawColliders");
+            DrawColliders();
             //DoRayCast();
             //Debug.Log(p.transform.localPosition);
         }
@@ -349,7 +358,7 @@ public class CompositeCollider : MonoBehaviour
         this.transform.rotation = Quaternion.Euler(objectRotation.x, objectRotation.y, objectRotation.z);
     }*/
 
-    public IEnumerator DrawColliders()
+    public void DrawColliders()
     {
         Vector3 objectScale = Vector3.one;//this.transform.localScale;
         Vector3 objectRotation = this.transform.rotation.eulerAngles;
@@ -451,8 +460,6 @@ public class CompositeCollider : MonoBehaviour
 
             //intermediateObject.SetActive(false);
             this.transform.rotation = Quaternion.Euler(objectRotation.x, objectRotation.y, objectRotation.z);
-            
-            if (i % 40 == 0) yield return null;
         }
 
         //this.transform.rotation = Quaternion.Euler(objectRotation.x, objectRotation.y, objectRotation.z);
@@ -483,7 +490,7 @@ public class CompositeCollider : MonoBehaviour
                                      mesh.normals[squareVertices[colliderIndex][2]] +
                                      mesh.normals[squareVertices[colliderIndex][3]]) / 4;
 
-        colliderContainer.transform.forward = averageNormal;
+        colliderContainer.transform.forward = intermediateObject.transform.TransformDirection(averageNormal);
         colliderContainer.transform.localRotation = Quaternion.Euler(colliderContainer.transform.localRotation.eulerAngles.x, colliderContainer.transform.localRotation.eulerAngles.y, 0);
 
         Vector3 vec1 = this.transform.TransformDirection(mesh.vertices[unconnectedSquareNodes[colliderIndex][0]] - mesh.vertices[connectedSquareNodes[colliderIndex][0]]);
@@ -499,17 +506,36 @@ public class CompositeCollider : MonoBehaviour
         colliderContainer.transform.localEulerAngles = new Vector3(colliderContainer.transform.localEulerAngles.x, colliderContainer.transform.localEulerAngles.y, -rotationAngle);
 
         List<Vector3> sideVectors = new List<Vector3> { vec1, vec2, vec3, vec4 };
-        
+
         List<float> xSidesLengths = new List<float> { sideVectors[sideOrders[colliderIndex].x[0]].magnitude, sideVectors[sideOrders[colliderIndex].x[1]].magnitude };
         List<float> ySidesLengths = new List<float> { sideVectors[sideOrders[colliderIndex].y[0]].magnitude, sideVectors[sideOrders[colliderIndex].y[1]].magnitude };
 
         collider.size = new Vector3(((xSidesLengths[0] + xSidesLengths[1]) / 2) * objectScale.x, ((ySidesLengths[0] + ySidesLengths[1]) / 2) * objectScale.y, colliderHeight);
-        
+
         intermediateObjects[colliderIndex] = intermediateObject;
         colliderContainers[colliderIndex] = colliderContainer;
         colliders[colliderIndex] = collider;
-
         this.transform.rotation = Quaternion.Euler(objectRotation.x, objectRotation.y, objectRotation.z);
+
+    }
+
+    public IEnumerator UpdateColliderGroup(List<int> colliderIndexes, int frameSpread = 1)
+    {
+        finishedRoutine = false;
+        var indexInterval = Math.Floor(colliderTriangles.Count * (((double)1) / frameSpread));
+
+        for (int i = 0; i < colliderIndexes.Count; i++)
+        {
+            UpdateCollider(i);
+
+            Debug.Log("INTERVAL IS " + indexInterval);
+            if (i % indexInterval == 0)
+            {
+                yield return null;
+            }
+        }
+
+        finishedRoutine = true;
     }
 
     private void BVH()
