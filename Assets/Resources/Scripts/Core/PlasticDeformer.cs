@@ -34,7 +34,7 @@ public class PlasticDeformer : Deformer
     private Vector3[] cpuSide;
 
     private ComputeBuffer debugBuffer;
-    private Vector3[] debugArray;
+    private Vector3[,] debugArray = new Vector3[50, 3];
     private ComputeBuffer vertexDataBuffer;
     private VertexData[] vertices;
 
@@ -78,7 +78,7 @@ public class PlasticDeformer : Deformer
         secondaryVertexArray = deformedMesh.vertices;
         vertexVelocities = new Vector3[originalVertices.Length];
 
-        computeShader = (Resources.Load("Shaders/DeformationShader") as ComputeShader);
+        computeShader = Resources.Load<ComputeShader>("Shaders/DeformationShader");
 
         maxReboundVelocity = new float[originalVertices.Length];
 
@@ -87,7 +87,14 @@ public class PlasticDeformer : Deformer
         vertexVelocitiesGPU = new Vector3[deformedVertices.Length];
 
         cpuSide = new Vector3[deformedMesh.vertices.Length];
-        debugArray = new Vector3[deformedMesh.vertices.Length];
+
+        for (int i = 0; i < 50; i++)
+        {
+            for (int j = 0; j < 3; j++)
+            {
+                debugArray[i, j] = Vector3.zero;
+            }
+        }
 
         vertices = new VertexData[deformedMesh.vertices.Length];
 
@@ -179,79 +186,62 @@ public class PlasticDeformer : Deformer
 
         if (contactPoints.Length > 0)
         {
-            if (debug == true)
-            {
-                //Debug.Log("HMM");
-            }
             completedCalculations = false;
             //StartCoroutine(Test(contactPoints, forces));
             for (int i = 0; i < deformedVertices.Length; i++)
             {
                 PlasticDeformVertexColliders(i, contactPoints, forces);
             }
-
-            /*for (int i = 0; i < squareVertices.Count; i++)
-            {
-                PlasticDeformVertexColliders(i, contactPoints, forces);
-            }*/
-
-            //StartCoroutine(GraduallyUpdateVertices(contactPoints, forces));
         }
-
-        //StartCoroutine(DoLast());
 
         deformedMesh.vertices = deformedVertices;
         deformedMesh.RecalculateNormals();
 
         collidersToUpdate = collidersToUpdate.Distinct().ToList();
 
-        if (compositeCollider.finishedRoutine == true && collidersToUpdate.Count > 0)
+        if (compositeCollider.finishedRoutine == true)
         {
-            Debug.Log("TO UPDATE : " + collidersToUpdate.Count);
-            StartCoroutine(compositeCollider.UpdateColliderGroup(collidersToUpdate, 5));
+            //Debug.Log("TO UPDATE : " + collidersToUpdate.Count);
+            //StartCoroutine(compositeCollider.UpdateColliderGroup(collidersToUpdate, 5));
         }
-        Debug.Log(compositeCollider.index);
+
+        //StartCoroutine(compositeCollider.UpdateColliderGroup(collidersToUpdate, 5));
+        //compositeCollider.UpdateColliderGroup(collidersToUpdate, 5);
+        //Debug.Log("INDEX IS " + compositeCollider.index);
         stopWatch.Stop();
 
         //Debug.Log(collidersToUpdate.Count + " ; " + stopWatch.Elapsed.Milliseconds);
         count = 0;
+
+        //TestGPU2();
     }
 
-    public IEnumerator Test(Vector3[] contactPoints, float[] forces)
+    public void TestGPU2()
     {
-        for (int i = 0; i < squareVertices.Count; i++)
+        int kernelHandle = computeShader.FindKernel("Main");
+        int iterations = 10;
+
+        debugBuffer = new ComputeBuffer(50 * 3, sizeof(float) * 3);
+        debugBuffer.SetData(debugArray);
+
+        computeShader.SetBuffer(kernelHandle, Shader.PropertyToID("debugBuffer"), debugBuffer);
+        Stopwatch sw = new Stopwatch();
+        sw.Start();
+        for (int i = 0; i < iterations; i++)
         {
-            PlasticDeformVertexColliders(i, contactPoints, forces);
-
-            if (i % 5 == 0)
-            {
-                yield return null;
-            }
+            computeShader.Dispatch(kernelHandle, 50 * 3, 3, 1);
         }
-    }
+        sw.Stop();
 
-    public IEnumerator GraduallyUpdateVertices(Vector3[] contactPoints, float[] forces)
-    {
-        for (int i = 0; i < deformedVertices.Length; i++)
-        {
-            PlasticDeformVertexPrototype(i, contactPoints, forces);
+       //Debug.Log(sw.Elapsed.TotalMilliseconds / iterations);
 
-            if (i % 50 == 0)
-            {
-                yield return null;
-            }
-        }
+        debugBuffer.GetData(debugArray);
+        debugBuffer.Dispose();
 
-        completedCalculations = true;
-        //yield return null;
-    }
+        var point = new Vector3(10, 10, 10);
 
-    IEnumerator DoLast()
-    {
-        while (completedCalculations == false)
-        {
-            yield return new WaitForSeconds(0.1f);
-        }
+        Debug.Log("UNITY : " + transform.TransformDirection(point));
+        Debug.Log("MANUAL : " + MathFunctions.ApplyTransformationDirection(point, transform.rotation));
     }
 
     public void RespondToForce(Vector3 forceOrigin, float forceAmount)

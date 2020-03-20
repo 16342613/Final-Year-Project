@@ -1,104 +1,70 @@
-﻿struct VertexData
-{
-    float3 originalVertexPosition;
-    float3 vertexPosition;
-    float3 vertexVelocity;
-    int threadID_X;
-    int threadID_Y;
-};
-
-RWStructuredBuffer<float3> originalVertexBuffer;
-RWStructuredBuffer<float3> vertexBuffer;
-RWStructuredBuffer<float3> vertexVelocitiesBuffer;
+﻿// DEBUG
 RWStructuredBuffer<float3> debugBuffer;
-float forceAmount;
-float3 forceOrigin;
-float meshStrength;
-float vertexMass;
-int vertexCount;
-float uniformScale;
-float springForce;
-float damping;
-float time;
-uint threadPoolDimension;
-/*
-RWStructuredBuffer<VertexData> vertexData;
-VertexData vertices[127][127];
 
-/*#pragma kernel AssignThreads
-[numthreads(1, 1, 1)]
-void AssignThreads(uint3 id : SV_DispatchThreadID)
+// Read Only
+RWStructuredBuffer<int> squareVertices;
+RWStructuredBuffer<float3> meshVertices;
+RWStructuredBuffer<float4x4> IM_TRSMs;
+RWStructuredBuffer<int> collidersToUpdate;
+RWStructuredBuffer<float4x4> CC_TRSMs;
+
+// Write Only
+RWStructuredBuffer<float3> boxColliderCentres;
+
+// Read and Write
+
+float Add(float x, float y)
 {
-    uint xIndex = 0;
-    uint yIndex = 0;
-    uint max = 77;
-    
-    [unroll(6000)]
-    for (int i = 0; i < vertexCount; i++)
-    {
-        if (xIndex < threadPoolDimension && yIndex < threadPoolDimension)
-        {
-            vertices[xIndex][yIndex] = vertexData[i];
-        }
-        
-        yIndex++;
-        
-        if (yIndex >= max)
-        {
-            xIndex++;
-            yIndex = 0;
-        }
-    }
-}*/
+    return x + y;
+}
 
-
-#pragma kernel DeformVertex
-[numthreads(1, 1, 1)]
-void DeformVertex(uint3 id : SV_DispatchThreadID)
+float3 TransformPoint(float3 toTransform, float4x4 trsMatrix)
 {
-    float distanceFromForce = sqrt(((vertexBuffer[id.x].x - forceOrigin.x) * (vertexBuffer[id.x].x - forceOrigin.x))
-                                    + ((vertexBuffer[id.x].y - forceOrigin.y) * (vertexBuffer[id.x].y - forceOrigin.y))
-                                    + ((vertexBuffer[id.x].z - forceOrigin.z) * (vertexBuffer[id.x].z - forceOrigin.z)));
-        
-    if (distanceFromForce > 0.5)
-    {
-        return;
-    }
-        
-    float forceAtVertex = forceAmount / (meshStrength + 5 * (distanceFromForce * distanceFromForce));
-    float vertexAcceleration = forceAtVertex / vertexMass;
-    vertexVelocitiesBuffer[id.x] = normalize(vertexBuffer[id.x] - forceOrigin) * vertexAcceleration;
-        
-    float3 displacement = originalVertexBuffer[id.x] - vertexBuffer[id.x];
-    displacement = displacement * uniformScale;
-        
-    float3 reboundVelocity = displacement * springForce;
-        
-    vertexVelocitiesBuffer[id.x] = vertexVelocitiesBuffer[id.x] + reboundVelocity;
-    vertexVelocitiesBuffer[id.x] = vertexVelocitiesBuffer[id.x] * (1 - damping * time);
-        
-    vertexBuffer[id.x] = vertexBuffer[id.x] + (vertexVelocitiesBuffer[id.x] * time);
+    float3 vector3;
     
-    /*float distanceFromForce = sqrt(((vertices[id.x][id.y].vertexPosition.x - forceOrigin.x) * (vertices[id.x][id.y].vertexPosition.x - forceOrigin.x))
-                                    + ((vertices[id.x][id.y].vertexPosition.y - forceOrigin.y) * (vertices[id.x][id.y].vertexPosition.y - forceOrigin.y))
-                                    + ((vertices[id.x][id.y].vertexPosition.z - forceOrigin.z) * (vertices[id.x][id.y].vertexPosition.z - forceOrigin.z)));
-        
-    if (distanceFromForce > 0.5)
+    vector3[0] = (trsMatrix[0][0] * toTransform[0] + trsMatrix[0][1] * toTransform[1] + trsMatrix[0][2] * toTransform[2]) + trsMatrix[0][3];
+    vector3[1] = (trsMatrix[1][0] * toTransform[0] + trsMatrix[1][1] * toTransform[1] + trsMatrix[1][2] * toTransform[2]) + trsMatrix[1][3];
+    vector3[2] = (trsMatrix[2][0] * toTransform[0] + trsMatrix[2][1] * toTransform[1] + trsMatrix[2][2] * toTransform[2]) + trsMatrix[2][3];
+    float num = float1(1) / ((trsMatrix[3][0] * toTransform[0] + trsMatrix[3][1] * toTransform[1] + trsMatrix[3][2] * toTransform[2]) + trsMatrix[3][3]);
+    vector3[0] = vector3[0] * num;
+    vector3[1] = vector3[1] * num;
+    vector3[2] = vector3[2] * num;
+
+    return vector3;
+}
+
+float3 TransformDirection(float3 toTransform, float4 rotationMatrix)
+{
+    float3 t = 2 * cross(float3(rotationMatrix[0], rotationMatrix[1], rotationMatrix[2]), toTransform);
+
+    return toTransform + rotationMatrix[3] * t + cross(float3(rotationMatrix[0], rotationMatrix[1], rotationMatrix[2]), t);
+}
+
+#pragma kernel Main
+[numthreads(3, 3, 1)]
+void Main(uint3 id : SV_DispatchThreadID)
+{
+    debugBuffer[id.x][id.y] = Add(id.x, id.y);
+
+    int colliderIndex = collidersToUpdate[id.x];
+    
+    //squareVertices[0] = 69;
+    //meshVertices[1] = float3(69, 420, 999);
+    //IM_TRSMs[0][1][1] = 69;
+    
+    //debugBuffer[id.x] = TransformPoint(float3(2, 2, 2), IM_TRSMs[0]);
+    
+    float3 boxColliderCentre = float3(0, 0, 0);
+    
+    for (int i = 0; i < 4; i++)
     {
-        return;
+        boxColliderCentre = boxColliderCentre + TransformPoint(meshVertices[squareVertices[(4 * colliderIndex) + i]], IM_TRSMs[colliderIndex]);
     }
-        
-    float forceAtVertex = forceAmount / (meshStrength + 5 * (distanceFromForce * distanceFromForce));
-    float vertexAcceleration = forceAtVertex / vertexMass;
-    //vertices[id.x][id.y].vertexVelocity = normalize(vertices[id.x][id.y].vertexPosition - forceOrigin) * vertexAcceleration;
-        
-    float3 displacement = vertices[id.x][id.y].originalVertexPosition - vertices[id.x][id.y].vertexPosition;
-    displacement = displacement * uniformScale;
-        
-    float3 reboundVelocity = displacement * springForce;
-        
-    vertices[id.x][id.y].vertexVelocity = vertices[id.x][id.y].vertexVelocity + reboundVelocity;
-    vertices[id.x][id.y].vertexVelocity = vertices[id.x][id.y].vertexVelocity * (1 - damping * time);
-        
-    vertices[id.x][id.y].vertexPosition = vertices[id.x][id.y].vertexPosition + (vertices[id.x][id.y].vertexVelocity * time);*/
+    
+    boxColliderCentres[id.x] = boxColliderCentre / 4;
+    
+    
+    
+    //debugBuffer[id.x] = boxColliderCentre;
+
 }
