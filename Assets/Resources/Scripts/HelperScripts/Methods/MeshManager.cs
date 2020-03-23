@@ -19,7 +19,6 @@ namespace HelperScripts.Methods
         public List<List<int>> meshTriangles = new List<List<int>>();   // The vertex indexes of each vertex in a triangle
         public List<List<int>> stronglyConnectedTriangles = new List<List<int>>();
         public List<List<int>> colliderTriangles = new List<List<int>>();
-        public List<List<int>> triangleConnectionNodes = new List<List<int>>();
 
         public List<List<int>> squareVertices = new List<List<int>>();
         public List<List<int>> connectedSquareNodes = new List<List<int>>();
@@ -121,6 +120,7 @@ namespace HelperScripts.Methods
         /// A method that gets the cleans up Mesh.triangles into a nice 2D list
         /// </summary>
         /// <returns></returns>
+        /// REFERENCE POINT 1
         public List<List<int>> GetMeshTriangles()
         {
             // Loop through all of the Mesh.triangles array
@@ -140,57 +140,55 @@ namespace HelperScripts.Methods
 
         public List<List<int>> GetStronglyConnectedTriangles()
         {
-            List<List<int>> connectedNodes = new List<List<int>>();
-
             if (meshTriangles.Count == 0)
             {
                 GetMeshTriangles();
             }
-
+            
+            /// REFERENCE POINT 2
             for (int i = 0; i < meshTriangles.Count; i++)
             {
+                // Obtain a reference triangle
                 List<int> currentTriangle = meshTriangles[i];
-                float largestConnectionDistance = 0;
-                List<int> largestConnectionNodes = new List<int>();
-                List<int> triangleConnectionNodePair = new List<int>();
+                List<int> connectionNodes = new List<int>();
 
+                // Loop through all the other mesh triangles
                 for (int j = 0; j < meshTriangles.Count; j++)
                 {
-                    if (j == i) continue;
-                    List<int> connections = new List<int>();
-
+                    if (j == i) continue;   // A traingle cannot be strongly connected to itself
                     int nodesShared = 0;
 
+                    // Loop through each vertex in the reference triangle
                     for (int k = 0; k < 3; k++)
                     {
                         if (meshTriangles[j].Contains(currentTriangle[k]))
                         {
-                            connections.Add(k);
                             nodesShared++;
                         }
                     }
 
+                    // If the triangles share two vertices
                     if (nodesShared == 2)
                     {
-                        connectedNodes.Add(connections);
-
-                        triangleConnectionNodePair = connections;
-                        largestConnectionNodes = new List<int> { i, j };
-                        stronglyConnectedTriangles.Add(largestConnectionNodes);
-                        triangleConnectionNodes.Add(triangleConnectionNodePair);
+                        // This index pair is a strongly connected triangle
+                        stronglyConnectedTriangles.Add(new List<int> { i, j });
                     }
                 }
             }
 
+            /// REFERENCE POINT 2
             for (int i = 0; i < stronglyConnectedTriangles.Count; i++)
             {
+                // Triangle vertices as Vector3
                 List<Vector3> triangle1Vertices = triangleDetails[stronglyConnectedTriangles[i][0]];
                 List<Vector3> triangle2Vertices = triangleDetails[stronglyConnectedTriangles[i][1]];
 
+                // Triangle vertices as indices of mesh.vertices
                 List<int> triangle1Indexes = meshTriangles[stronglyConnectedTriangles[i][0]];
                 List<int> triangle2Indexes = meshTriangles[stronglyConnectedTriangles[i][1]];
                 List<int> polygonIndexes = new List<int>();
 
+                // Find the vertex indices of the corners of the polygon formed by the strongly connected triangle pair
                 for (int j = 0; j < 6; j++)
                 {
                     if (j <= 2)
@@ -203,9 +201,11 @@ namespace HelperScripts.Methods
                     }
                 }
 
+                // Get the distinct vertex indices to remove duplicates
                 List<int> connectedNodesIndexes = polygonIndexes.GroupBy(s => s).SelectMany(grp => grp.Skip(1)).Distinct().ToList();
                 polygonIndexes = polygonIndexes.Distinct().ToList();
 
+                // individual vertices of the strongly connected triangle pair
                 Vector3 a1 = vertices[connectedNodesIndexes[0]];
                 Vector3 b1 = vertices[triangle1Indexes.Except(connectedNodesIndexes).ToList()[0]];
                 Vector3 c1 = vertices[connectedNodesIndexes[1]];
@@ -213,14 +213,17 @@ namespace HelperScripts.Methods
                 Vector3 b2 = vertices[triangle2Indexes.Except(connectedNodesIndexes).ToList()[0]];
                 Vector3 c2 = vertices[connectedNodesIndexes[1]];
 
+                // Get the internal angles of the first triangle
                 float abcAngle1 = MathFunctions.GetVectorInternalAngle(b1, c1, a1);
                 float bcaAngle1 = MathFunctions.GetVectorInternalAngle(c1, a1, b1);
                 float cabAngle1 = MathFunctions.GetVectorInternalAngle(a1, b1, c1);
 
+                // Get the internal angles of the second triangle
                 float abcAngle2 = MathFunctions.GetVectorInternalAngle(b2, c2, a2);
                 float bcaAngle2 = MathFunctions.GetVectorInternalAngle(c2, a2, b2);
                 float cabAngle2 = MathFunctions.GetVectorInternalAngle(a2, b2, c2);
 
+                // The internal angles of the polygon formed by the strongly connected triangle pair
                 float polygonABC = abcAngle1;
                 float polygonBCD = bcaAngle1 + bcaAngle2;
                 float polygonCDA = abcAngle2;
@@ -229,8 +232,12 @@ namespace HelperScripts.Methods
                 List<float> polygonInternalAngles = new List<float> { polygonABC, polygonBCD, polygonCDA, polygonDAB };
                 bool approximatelySquare = true;
 
+                // Loop through each of the polygon internal angles
                 for (int j = 0; j < 4; j++)
                 {
+                    // If the the difference between the internal angle and the ideal internal angle (90 degrees to form a 
+                    // perfect square) is greater than the threshold angle (20 degrees is optimal, but can be tuned if 
+                    // necessary), this polygon is not roughly square.
                     if (Mathf.Abs(90 - polygonInternalAngles[j]) > 20)
                     {
                         approximatelySquare = false;
@@ -238,12 +245,15 @@ namespace HelperScripts.Methods
                     }
                 }
 
+                // If the polygon is roughly square, then add it to the next stage
                 if (approximatelySquare == true)
                 {
                     colliderTriangles.Add(stronglyConnectedTriangles[i]);
                 }
             }
 
+            /// REFERENCE POINT 5
+            // We still need to process the results to remove duplicates
             List<List<int>> processedColliderTriangles = new List<List<int>>();
             List<int> duplicatedIndexes = new List<int>();
 
