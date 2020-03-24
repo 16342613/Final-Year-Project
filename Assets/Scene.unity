@@ -134,7 +134,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 129263342}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c1b6e19210b734937b3b9d9cdc3036f6, type: 3}
   m_Name: 
@@ -154,7 +154,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 129263342}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 55a3c3b66afa88a4f932152cbc29e0d5, type: 3}
   m_Name: 
@@ -451,7 +451,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!108 &443006389
 Light:
   m_ObjectHideFlags: 0
@@ -617,7 +617,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 497137208}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 13.79, y: -4.76, z: 3.3}
+  m_LocalPosition: {x: 20.87, y: -4.76, z: 4.25}
   m_LocalScale: {x: 3, y: 3, z: 3}
   m_Children: []
   m_Father: {fileID: 0}
@@ -646,7 +646,7 @@ Rigidbody:
   m_Mass: 1
   m_Drag: 0
   m_AngularDrag: 0
-  m_UseGravity: 1
+  m_UseGravity: 0
   m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 112
@@ -663,7 +663,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 324d98ccaef4d4ca8b1c7bc7dd739b30, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  force: -50
+  force: -15
 --- !u!1 &546076508 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -927199367670048503, guid: e55bf09e085734699b1965bcd45332e7,
@@ -1138,7 +1138,7 @@ PrefabInstance:
     - target: {fileID: -4216859302048453862, guid: 529e743f63d524443890c92feb867d30,
         type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0
+      value: -0.7071068
       objectReference: {fileID: 0}
     - target: {fileID: -4216859302048453862, guid: 529e743f63d524443890c92feb867d30,
         type: 3}
@@ -1148,7 +1148,7 @@ PrefabInstance:
     - target: {fileID: -4216859302048453862, guid: 529e743f63d524443890c92feb867d30,
         type: 3}
       propertyPath: m_LocalRotation.w
-      value: 1
+      value: 0.7071068
       objectReference: {fileID: 0}
     - target: {fileID: -4216859302048453862, guid: 529e743f63d524443890c92feb867d30,
         type: 3}
@@ -1163,7 +1163,7 @@ PrefabInstance:
     - target: {fileID: -4216859302048453862, guid: 529e743f63d524443890c92feb867d30,
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
+      value: -90
       objectReference: {fileID: 0}
     - target: {fileID: -4216859302048453862, guid: 529e743f63d524443890c92feb867d30,
         type: 3}
@@ -1183,7 +1183,7 @@ PrefabInstance:
     - target: {fileID: -927199367670048503, guid: 529e743f63d524443890c92feb867d30,
         type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6531144289327318754, guid: 529e743f63d524443890c92feb867d30,
         type: 3}
@@ -1270,7 +1270,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1037085260}
   m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 13.94, y: -1.16, z: 15.64}
+  m_LocalPosition: {x: 10.77, y: -1.16, z: 3.94}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -1300,7 +1300,7 @@ PrefabInstance:
     - target: {fileID: 4169778844143480080, guid: 10035f1f0937848fd888aa4517b5bf32,
         type: 3}
       propertyPath: m_LocalPosition.x
-      value: 11.18
+      value: 10.53
       objectReference: {fileID: 0}
     - target: {fileID: 4169778844143480080, guid: 10035f1f0937848fd888aa4517b5bf32,
         type: 3}
@@ -1310,7 +1310,7 @@ PrefabInstance:
     - target: {fileID: 4169778844143480080, guid: 10035f1f0937848fd888aa4517b5bf32,
         type: 3}
       propertyPath: m_LocalPosition.z
-      value: 5.75
+      value: 3.81
       objectReference: {fileID: 0}
     - target: {fileID: 4169778844143480080, guid: 10035f1f0937848fd888aa4517b5bf32,
         type: 3}
@@ -1365,7 +1365,7 @@ PrefabInstance:
     - target: {fileID: 4169778844143480087, guid: 10035f1f0937848fd888aa4517b5bf32,
         type: 3}
       propertyPath: power
-      value: 300
+      value: 200
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 10035f1f0937848fd888aa4517b5bf32, type: 3}
@@ -1546,7 +1546,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1524421247
 MonoBehaviour:
   m_ObjectHideFlags: 0

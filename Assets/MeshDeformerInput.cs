@@ -12,14 +12,14 @@ public class MeshDeformerInput : MonoBehaviour
 
     }
 
-    void FixedUpdate()
+    /*void FixedUpdate()
     {
         if (Input.GetMouseButton(0))
         {
             HandleInput();
             DrawRay();
         }
-    }
+    }*/
 
     void DrawRay()
     {

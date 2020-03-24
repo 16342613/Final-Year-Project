@@ -33,7 +33,7 @@ public class CannonScript : MonoBehaviour
         frameCount++;
 
         DeleteOutOfBounds();
-
+        
     }
 
     private void Reload()

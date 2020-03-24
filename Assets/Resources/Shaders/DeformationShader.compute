@@ -4,20 +4,19 @@ RWStructuredBuffer<float3> debugBuffer;
 // Read Only
 RWStructuredBuffer<int> squareVertices;
 RWStructuredBuffer<float3> meshVertices;
-RWStructuredBuffer<float4x4> IM_TRSMs;
 RWStructuredBuffer<int> collidersToUpdate;
-RWStructuredBuffer<float4x4> CC_TRSMs;
 RWStructuredBuffer<float3> meshNormals;
+RWStructuredBuffer<float4x4> IM_CC_TRSMs;
+
 RWStructuredBuffer<float4x4> CC_Local_TRSMs;
-RWStructuredBuffer<int> connectedSquareNodes;
-RWStructuredBuffer<int> unconnectedSquareNodes;
-//RWStructuredBuffer<int> sideOrders_X;
-//RWStructuredBuffer<int> sideOrders_Y;
+RWStructuredBuffer<float4x4> CCglobal_CClocal_TRSMs;
+RWStructuredBuffer<int> squareNodeConnections;
+RWStructuredBuffer<int> sideOrders_XY;
 
 // Write Only
 RWStructuredBuffer<float4x4> returnDetails;
 RWStructuredBuffer<float> returnRotationAngles;
-//RWStructuredBuffer<float3> returnColliderSizes;
+RWStructuredBuffer<float4> returnDetails2;
 
 // Read and Write
 float4x4 thisTransform;
@@ -50,6 +49,7 @@ float4 FromToRotation(float3 from, float3 to)
     return NormalizeQuaternion(q);
 }
 
+// Returns true if they are the same
 bool CompareFloat3(float3 a, float3 b)
 {
     if (a[0] != b[0])
@@ -70,6 +70,17 @@ bool CompareFloat3(float3 a, float3 b)
     return true;
 }
 
+// From https://www.euclideanspace.com/maths/algebra/realNormedAlgebra/quaternions/code/index.htm
+float4 MultiplyQuaternions(float4 q1, float4 q2)
+{
+    float x = q1.x * q2.w + q1.y * q2.z - q1.z * q2.y + q1.w * q2.x;
+    float y = -q1.x * q2.z + q1.y * q2.w + q1.z * q2.x + q1.w * q2.y;
+    float z = q1.x * q2.y - q1.y * q2.x + q1.z * q2.w + q1.w * q2.z;
+    float w = -q1.x * q2.x - q1.y * q2.y - q1.z * q2.z + q1.w * q2.w;
+    
+    return float4(x, y, z, w);
+}
+
 float4 LookRotation(float3 dir, float3 up)
 {
     if (dir[0] == 0 && dir[1] == 0 && dir[2] == 0)
@@ -83,7 +94,7 @@ float4 LookRotation(float3 dir, float3 up)
         float3 v = dir + up * -dot(up, dir);
         float4 q = FromToRotation(float3(0, 0, 1), v);
         
-        return FromToRotation(v, dir) * q;
+        return MultiplyQuaternions(FromToRotation(v, dir), q);
     }
     else
     {
@@ -253,54 +264,59 @@ float SignedAngle(float3 from, float3 to, float3 axis)
 }
 
 #pragma kernel Main
-[numthreads(3, 3, 1)]
+[numthreads(1, 1, 1)]
 void Main(uint3 id : SV_DispatchThreadID)
 {
     int colliderIndex = collidersToUpdate[id.x];
+    float4x4 currentIM_TRSM = IM_CC_TRSMs[(2 * id.x) + 0];
     
-    float3 boxColliderCentre = (TransformPoint(meshVertices[squareVertices[(4 * colliderIndex) + 0]], IM_TRSMs[id.x]) +
-                                TransformPoint(meshVertices[squareVertices[(4 * colliderIndex) + 1]], IM_TRSMs[id.x]) +
-                                TransformPoint(meshVertices[squareVertices[(4 * colliderIndex) + 2]], IM_TRSMs[id.x]) +
-                                TransformPoint(meshVertices[squareVertices[(4 * colliderIndex) + 3]], IM_TRSMs[id.x])) / 4;
+    float3 boxColliderCentre = (TransformPoint(meshVertices[squareVertices[(4 * colliderIndex) + 0]], currentIM_TRSM) +
+                                TransformPoint(meshVertices[squareVertices[(4 * colliderIndex) + 1]], currentIM_TRSM) +
+                                TransformPoint(meshVertices[squareVertices[(4 * colliderIndex) + 2]], currentIM_TRSM) +
+                                TransformPoint(meshVertices[squareVertices[(4 * colliderIndex) + 3]], currentIM_TRSM)) / 4;
     
     float3 averageNormal = (meshNormals[squareVertices[(4 * colliderIndex) + 0]] +
                             meshNormals[squareVertices[(4 * colliderIndex) + 1]] +
                             meshNormals[squareVertices[(4 * colliderIndex) + 2]] +
                             meshNormals[squareVertices[(4 * colliderIndex) + 3]]) / 4;
     
-    float4 IM_TRSM_Rotation = DecomposeTRSM(IM_TRSMs[id.x])[1];
-    float4 rotation = LookRotation(TransformDirection(averageNormal, DecomposeTRSM(IM_TRSMs[id.x])[1]), float3(0, 1, 0));
+    float4 IM_TRSM_Rotation = DecomposeTRSM(currentIM_TRSM)[1];
+    float4 rotation = LookRotation(TransformDirection(averageNormal, DecomposeTRSM(currentIM_TRSM)[1]), float3(0, 1, 0));
     
-    float4 testLook = LookRotation(TransformDirection(float3(0.5, 0.2, -0.3), DecomposeTRSM(IM_TRSMs[id.x])[1]), float3(0, 1, 0));
-    debugBuffer[id.x] = float3(testLook[0], testLook[1], testLook[2]);
+    float4 testLook = LookRotation(float3(0.5, 0.2, -0.3), float3(0, 1, 0)); 
     
     returnDetails[id.x] = GenerateReturnMatrix(boxColliderCentre, rotation, float3(1, 1, 1));
 }
 
 #pragma kernel Main2
-[numthreads(3, 3, 1)]
+[numthreads(1, 1, 1)]
 void Main2(uint3 id : SV_DispatchThreadID)
 {
     int colliderIndex = collidersToUpdate[id.x];
+    float4x4 colliderContainerGlobalTransform = CCglobal_CClocal_TRSMs[(2 * id.x) + 0];
+    float4x4 colliderContainerLocalTransform = CCglobal_CClocal_TRSMs[(2 * id.x) + 1];
     
     float4 transformRotation = DecomposeTRSM(thisTransform)[1];
-    float3 vec1 = TransformDirection(meshVertices[unconnectedSquareNodes[(2 * colliderIndex) + 0]] - meshVertices[connectedSquareNodes[(2 * colliderIndex) + 0]], transformRotation);
-    float3 vec2 = TransformDirection(meshVertices[connectedSquareNodes[(2 * colliderIndex) + 1]] - meshVertices[unconnectedSquareNodes[(2 * colliderIndex) + 0]], transformRotation);
-    float3 vec3 = TransformDirection(meshVertices[unconnectedSquareNodes[(2 * colliderIndex) + 1]] - meshVertices[connectedSquareNodes[(2 * colliderIndex) + 1]], transformRotation);
-    float3 vec4 = TransformDirection(meshVertices[connectedSquareNodes[(2 * colliderIndex) + 0]] - meshVertices[unconnectedSquareNodes[(2 * colliderIndex) + 1]], transformRotation);
+    float3 vec1 = TransformDirection(meshVertices[squareNodeConnections[(4 * colliderIndex) + 2]] - meshVertices[squareNodeConnections[(4 * colliderIndex) + 0]], transformRotation);
+    float3 vec2 = TransformDirection(meshVertices[squareNodeConnections[(4 * colliderIndex) + 1]] - meshVertices[squareNodeConnections[(4 * colliderIndex) + 2]], transformRotation);
+    float3 vec3 = TransformDirection(meshVertices[squareNodeConnections[(4 * colliderIndex) + 3]] - meshVertices[squareNodeConnections[(4 * colliderIndex) + 1]], transformRotation);
+    float3 vec4 = TransformDirection(meshVertices[squareNodeConnections[(4 * colliderIndex) + 0]] - meshVertices[squareNodeConnections[(4 * colliderIndex) + 3]], transformRotation);
     
     float3 averageSideVector = normalize(vec2 - vec4);
     
-    float3 correctColliderUp = cross(averageSideVector, TransformDirection(GetAxisDirectionsFromTRSM(CC_TRSMs[id.x])[2], transformRotation));
-    float3 currentColliderUp = TransformDirection(GetAxisDirectionsFromTRSM(CC_TRSMs[id.x])[2], transformRotation);
-    float rotationAngle = SignedAngle(correctColliderUp, currentColliderUp, TransformDirection(GetAxisDirectionsFromTRSM(CC_TRSMs[id.x])[2], transformRotation));
+    float3 correctColliderUp = cross(averageSideVector, TransformDirection(GetAxisDirectionsFromTRSM(colliderContainerGlobalTransform)[2], transformRotation));
+    float3 currentColliderUp = TransformDirection(GetAxisDirectionsFromTRSM(colliderContainerGlobalTransform)[1], transformRotation);
+    float rotationAngle = SignedAngle(correctColliderUp, currentColliderUp, TransformDirection(GetAxisDirectionsFromTRSM(colliderContainerGlobalTransform)[2], transformRotation));
 
+    returnDetails2[id.x][3] = rotationAngle;
     
-    returnRotationAngles[id.x] = rotationAngle;
+    float4x3 sideVectors = float4x3(vec1, vec2, vec3, vec4);
+    float xSideLength = (length(sideVectors[sideOrders_XY[(4 * colliderIndex) + 0]]) + length(sideVectors[sideOrders_XY[(4 * colliderIndex) + 1]])) / 2;
+    float ySideLength = (length(sideVectors[sideOrders_XY[(4 * colliderIndex) + 3]]) + length(sideVectors[sideOrders_XY[(4 * colliderIndex) + 4]])) / 2;
     
-    /*float4x3 sideVectors = float4x3(vec1, vec2, vec3, vec4);
-    float xSideLength = (length(sideVectors[sideOrders_X[(2 * colliderIndex) + 0]]) + length(sideVectors[sideOrders_X[(2 * colliderIndex) + 1]])) / 2;
-    float ySideLength = (length(sideVectors[sideOrders_Y[(2 * colliderIndex) + 0]]) + length(sideVectors[sideOrders_Y[(2 * colliderIndex) + 1]])) / 2;
+    float3 colliderSize = float3(xSideLength, ySideLength, 0.0001);
     
-    returnColliderSizes[id.x] = float3(xSideLength, ySideLength, 0.0001);*/
+    returnDetails2[id.x][0] = colliderSize.x;
+    returnDetails2[id.x][1] = colliderSize.y;
+    returnDetails2[id.x][2] = colliderSize.z;
 }

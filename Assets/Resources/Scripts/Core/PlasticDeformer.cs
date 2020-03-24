@@ -23,21 +23,6 @@ public class PlasticDeformer : Deformer
     private float uniformScale = 1f;
     private int frameCount = 0;
 
-    // Compute Shader Variables
-    private ComputeShader computeShader;
-    private ComputeBuffer originalVertexBuffer;
-    private ComputeBuffer vertexBuffer;
-    private ComputeBuffer vertexVelocitiesBuffer;
-    private Vector3[] originalVerticesGPU;
-    private Vector3[] verticesGPU;
-    private Vector3[] vertexVelocitiesGPU;
-    private Vector3[] cpuSide;
-
-    private ComputeBuffer debugBuffer;
-    private Vector3[,] debugArray = new Vector3[50, 3];
-    private ComputeBuffer vertexDataBuffer;
-    private VertexData[] vertices;
-
     private Vector3[] secondaryVertexArray;
     private Vector3[] test;
 
@@ -48,26 +33,8 @@ public class PlasticDeformer : Deformer
     private Dictionary<int, List<int>> vertexSquareMapping = new Dictionary<int, List<int>>();
     private List<int> collidersToUpdate = new List<int>();
 
-    private bool completedCalculations = false;
     public float range = 0.25f;
     public bool debug = false;
-    private int count = 0;
-
-    struct VertexData
-    {
-        public Vector3 originalVertexPosition;
-        public Vector3 vertexPosition;
-        public Vector3 vertexVelocity;
-        public int threadID_X;
-        public int threadID_Y;
-
-        public VertexData(Vector3 originalVertexPosition, Vector3 vertexPosition, Vector3 vertexVelocity) : this()
-        {
-            this.originalVertexPosition = originalVertexPosition;
-            this.vertexPosition = vertexPosition;
-            this.vertexVelocity = vertexVelocity;
-        }
-    }
 
     void Start()
     {
@@ -78,25 +45,7 @@ public class PlasticDeformer : Deformer
         secondaryVertexArray = deformedMesh.vertices;
         vertexVelocities = new Vector3[originalVertices.Length];
 
-        computeShader = Resources.Load<ComputeShader>("Shaders/DeformationShader");
-
         maxReboundVelocity = new float[originalVertices.Length];
-
-        originalVerticesGPU = (Vector3[])originalVertices.Clone();
-        verticesGPU = (Vector3[])deformedVertices.Clone();
-        vertexVelocitiesGPU = new Vector3[deformedVertices.Length];
-
-        cpuSide = new Vector3[deformedMesh.vertices.Length];
-
-        for (int i = 0; i < 50; i++)
-        {
-            for (int j = 0; j < 3; j++)
-            {
-                debugArray[i, j] = Vector3.zero;
-            }
-        }
-
-        vertices = new VertexData[deformedMesh.vertices.Length];
 
         //ComputeShaderSetup();
 
@@ -122,49 +71,6 @@ public class PlasticDeformer : Deformer
         }
     }
 
-    private void ComputeShaderSetup()
-    {
-        int kernelHandle = computeShader.FindKernel("AssignThreads");
-
-        for (int i = 0; i < vertices.Length; i++)
-        {
-            vertices[i] = new VertexData(deformedMesh.vertices[i], deformedMesh.vertices[i], Vector3.zero);
-        }
-
-        int threadPoolDimension = (int)Math.Ceiling(Mathf.Sqrt(vertices.Length));
-        int index = 0;
-
-        for (int i = 0; i < threadPoolDimension; i++)
-        {
-            for (int j = 0; j < threadPoolDimension; j++)
-            {
-                if (index < vertices.Length)
-                {
-                    vertices[index].threadID_X = i;
-                    vertices[index].threadID_Y = j;
-
-                    index++;
-                }
-            }
-        }
-
-        vertexDataBuffer = new ComputeBuffer(vertices.Length, (sizeof(float) * 3 * 3) + (sizeof(int) * 2));
-        debugBuffer = new ComputeBuffer(debugArray.Length, sizeof(float) * 3);
-        debugBuffer.SetData(debugArray);
-
-        computeShader.SetBuffer(kernelHandle, Shader.PropertyToID("debugBuffer"), debugBuffer);
-        computeShader.SetBuffer(kernelHandle, Shader.PropertyToID("vertexData"), vertexDataBuffer);
-        computeShader.SetInt("vertexCount", vertices.Length);
-        computeShader.SetInt("threadPoolDimension", threadPoolDimension);
-
-        computeShader.Dispatch(computeShader.FindKernel("AssignThreads"), 1, 1, 1);
-
-        debugBuffer.GetData(debugArray);
-
-        debugBuffer.Dispose();
-        vertexDataBuffer.Dispose();
-    }
-
     void FixedUpdate()
     {
         Stopwatch stopWatch = new Stopwatch();
@@ -186,8 +92,6 @@ public class PlasticDeformer : Deformer
 
         if (contactPoints.Length > 0)
         {
-            completedCalculations = false;
-            //StartCoroutine(Test(contactPoints, forces));
             for (int i = 0; i < deformedVertices.Length; i++)
             {
                 PlasticDeformVertexColliders(i, contactPoints, forces);
@@ -199,49 +103,13 @@ public class PlasticDeformer : Deformer
 
         collidersToUpdate = collidersToUpdate.Distinct().ToList();
 
-        if (compositeCollider.finishedRoutine == true)
+        if (collidersToUpdate.Count > 0)
         {
-            //Debug.Log("TO UPDATE : " + collidersToUpdate.Count);
-            //StartCoroutine(compositeCollider.UpdateColliderGroup(collidersToUpdate, 5));
+            compositeCollider.UpdateColliderGPU(new List<int> { collidersToUpdate[0] });
+            stopWatch.Stop();
+
+            Debug.Log("TOTAL TIME : " + stopWatch.Elapsed.Milliseconds);
         }
-
-        //StartCoroutine(compositeCollider.UpdateColliderGroup(collidersToUpdate, 5));
-        //compositeCollider.UpdateColliderGroup(collidersToUpdate, 5);
-        //Debug.Log("INDEX IS " + compositeCollider.index);
-        stopWatch.Stop();
-
-        //Debug.Log(collidersToUpdate.Count + " ; " + stopWatch.Elapsed.Milliseconds);
-        count = 0;
-
-        //TestGPU2();
-    }
-
-    public void TestGPU2()
-    {
-        int kernelHandle = computeShader.FindKernel("Main");
-        int iterations = 10;
-
-        debugBuffer = new ComputeBuffer(50 * 3, sizeof(float) * 3);
-        debugBuffer.SetData(debugArray);
-
-        computeShader.SetBuffer(kernelHandle, Shader.PropertyToID("debugBuffer"), debugBuffer);
-        Stopwatch sw = new Stopwatch();
-        sw.Start();
-        for (int i = 0; i < iterations; i++)
-        {
-            computeShader.Dispatch(kernelHandle, 50 * 3, 3, 1);
-        }
-        sw.Stop();
-
-       //Debug.Log(sw.Elapsed.TotalMilliseconds / iterations);
-
-        debugBuffer.GetData(debugArray);
-        debugBuffer.Dispose();
-
-        var point = new Vector3(10, 10, 10);
-
-        Debug.Log("UNITY : " + transform.TransformDirection(point));
-        Debug.Log("MANUAL : " + MathFunctions.ApplyTransformationDirection(point, transform.rotation));
     }
 
     public void RespondToForce(Vector3 forceOrigin, float forceAmount)
@@ -349,8 +217,6 @@ public class PlasticDeformer : Deformer
         {
             collidersToUpdate.Add(vertexSquareMapping[vertexIndex][i]);
         }
-
-        count += collidersToUpdate.Count;
     }
 
     public void PlasticDeformVertexPrototype(int vertexIndex, Vector3[] forceOrigins, float[] forces)
@@ -389,88 +255,6 @@ public class PlasticDeformer : Deformer
         }
 
         deformedVertices[vertexIndex] = secondaryVertexArray[vertexIndex];
-    }
-
-    public void TestGPU(Vector3 forceOrigin, float forceAmount)
-    {
-        int kernelHandle = computeShader.FindKernel("DeformVertex");
-
-        originalVertexBuffer = new ComputeBuffer(originalVertices.Length, sizeof(float) * 3);
-        originalVertexBuffer.SetData(originalVerticesGPU);
-
-        verticesGPU = (Vector3[])deformedVertices.Clone();
-
-        vertexBuffer = new ComputeBuffer(verticesGPU.Length, sizeof(float) * 3);
-        vertexBuffer.SetData(verticesGPU);
-        vertexVelocitiesBuffer = new ComputeBuffer(vertexVelocitiesGPU.Length, sizeof(float) * 3);
-        vertexVelocitiesBuffer.SetData(vertexVelocitiesGPU);
-
-        debugBuffer = new ComputeBuffer(debugArray.Length, sizeof(float) * 3);
-        debugBuffer.SetData(debugArray);
-
-        //VertexData[] vertexData = EncodeVertexThreadIDs(verticesGPU);
-        //vertexThreadIDBuffer = new ComputeBuffer(vertexData.Length, System.Runtime.InteropServices.Marshal.SizeOf(typeof(VertexData)));
-        //vertexThreadIDBuffer.SetData(vertexData);
-        //computeShader.SetBuffer(kernelHandle, Shader.PropertyToID("vertexData"), vertexThreadIDBuffer);
-
-        computeShader.SetBuffer(kernelHandle, Shader.PropertyToID("originalVertexBuffer"), originalVertexBuffer);
-        computeShader.SetBuffer(kernelHandle, Shader.PropertyToID("vertexBuffer"), vertexBuffer);
-        computeShader.SetBuffer(kernelHandle, Shader.PropertyToID("vertexVelocitiesBuffer"), vertexVelocitiesBuffer);
-        computeShader.SetBuffer(kernelHandle, Shader.PropertyToID("debugBuffer"), debugBuffer);
-        computeShader.SetVector("forceOrigin", new Vector4(forceOrigin.x, forceOrigin.y, forceOrigin.z, 0));
-        computeShader.SetInt("vertexCount", verticesGPU.Length);
-        computeShader.SetFloat("forceAmount", forceAmount);
-        computeShader.SetFloat("meshStrength", meshStrength);
-        computeShader.SetFloat("vertexMass", vertexMass);
-        computeShader.SetFloat("uniformScale", uniformScale);
-        computeShader.SetFloat("springForce", springForce);
-        computeShader.SetFloat("damping", damping);
-        computeShader.SetFloat("time", Time.deltaTime);
-
-        int size = (int)Math.Ceiling(Math.Sqrt(verticesGPU.Length));
-        computeShader.SetInt(Shader.PropertyToID("sideCount"), size);
-
-        computeShader.Dispatch(kernelHandle, verticesGPU.Length, 1, 1);
-
-        vertexVelocitiesBuffer.GetData(vertexVelocitiesGPU);
-        vertexBuffer.GetData(verticesGPU);
-        debugBuffer.GetData(debugArray);
-
-        originalVertexBuffer.Dispose();
-        vertexVelocitiesBuffer.Dispose();
-        vertexBuffer.Dispose();
-        debugBuffer.Dispose();
-        //vertexThreadIDBuffer.Dispose();
-
-        deformedVertices = (Vector3[])verticesGPU.Clone();
-    }
-
-    private VertexData[] EncodeVertexThreadIDs(Vector3[] input)
-    {
-        /*int currentIndex = 0;
-        int size = (int)Math.Ceiling(Math.Sqrt(input.Length));
-        VertexData[] vertexData = new VertexData[size * size];
-
-        for (int i = 0; i < size; i++)
-        {
-            for (int j = 0; j < size; j++)
-            {
-                if (currentIndex < input.Length)
-                {
-                    vertexData[currentIndex] = new VertexData(input[currentIndex], i, j);
-                    currentIndex++;
-                }
-                else
-                {
-                    vertexData[currentIndex] = new VertexData(Vector3.zero, -1, -1);
-                    currentIndex++;
-                }
-            }
-        }
-
-        Debug.LogError(vertexData[test].threadID_X + ", " + vertexData[test].threadID_Y);
-        */
-        return null;
     }
 
     // Gizmos for debug
