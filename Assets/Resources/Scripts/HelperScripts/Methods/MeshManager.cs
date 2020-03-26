@@ -252,6 +252,8 @@ namespace HelperScripts.Methods
                 }
             }
 
+            DebugHelper.PrintListList(colliderTriangles, true, true);
+
             /// REFERENCE POINT 5
             // We still need to process the results to remove duplicates
             List<List<int>> processedColliderTriangles = new List<List<int>>();
@@ -310,7 +312,6 @@ namespace HelperScripts.Methods
                     if (squareVertices[j].Contains(i))
                     {
                         vertexSquareMapping[i].Add(j);
-
                     }
                 }
             }

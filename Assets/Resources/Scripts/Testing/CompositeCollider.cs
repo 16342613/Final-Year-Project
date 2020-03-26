@@ -23,7 +23,6 @@ public class CompositeCollider : MonoBehaviour
     public List<GameObject> intermediateObjects = new List<GameObject>();
     public List<GameObject> colliderContainers = new List<GameObject>();
     public List<BoxCollider> colliders = new List<BoxCollider>();
-    public bool ready = false;
     private float colliderHeight = 0.0001f;
     private MeshManager meshManager;
     public Dictionary<int, List<int>> vertexSquareMapping;
@@ -52,22 +51,18 @@ public class CompositeCollider : MonoBehaviour
     private Matrix4x4[,] IM_CC_TRSMs;
     private ComputeBuffer IM_CC_TRSM_Buffer;
 
-    private Matrix4x4[] CC_Local_TRSMs;  // Collider Container Object Translate Rotate Scale Matrices
-    private ComputeBuffer CC_Local_TRSM_Buffer;
-
     private int[,] squareNodeConnections;
     private ComputeBuffer squareNodeConnections_Buffer;
 
     private int[,] sidesXYConverted;
     private ComputeBuffer sidesXY_Buffer;
 
-    private Matrix4x4[,] CCglobal_CClocal_TRSMs;  // Collider Container Object Translate Rotate Scale Matrices
-    private ComputeBuffer CCglobal_CClocal_TRSM_Buffer;
+    private Matrix4x4[,] CCglobal_CClocal_IMglobalTRSMs;  // Collider Container Object Translate Rotate Scale Matrices
+    private ComputeBuffer CCglobal_CClocal_IMglobal_TRSM_Buffer;
 
     private Vector4[] returnDetails2;
     private ComputeBuffer returnDetails2_Buffer;
 
-    private bool done = false;
     private List<Vector3[]> localColliderTransforms = new List<Vector3[]>();
     private List<object> locals = new List<object>();
     private float totalTime = 0;
@@ -82,7 +77,7 @@ public class CompositeCollider : MonoBehaviour
     }
 
     // Start is called before the first frame update
-    void Start()
+    void Awake()
     {
         computeShader = Resources.Load<ComputeShader>("Shaders/DeformationShader");
 
@@ -130,18 +125,14 @@ public class CompositeCollider : MonoBehaviour
         squareNodeConnections_Buffer = new ComputeBuffer(squareNodeConnections.Length, sizeof(int));
         squareNodeConnections_Buffer.SetData(squareNodeConnections);
         computeShader.SetBuffer(computeShader.FindKernel("Main2"), Shader.PropertyToID("squareNodeConnections"), squareNodeConnections_Buffer);
-
-        ready = true;
     }
 
     // Update is called once per frame
     void Update()
     {
         mesh.RecalculateNormals();
-        mesh.RecalculateBounds();
-        mesh.RecalculateTangents();
 
-        /*List<int> ctu = new List<int>();
+        List<int> ctu = new List<int>();
         for (int i = 0; i < colliderContainers.Count; i++)
         {
             ctu.Add(i);
@@ -172,7 +163,7 @@ public class CompositeCollider : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.K))
         {
             DrawColliders();
-        }*/
+        }
 
         //if (done == false) UpdateColliderGPU(null);
     }
@@ -363,7 +354,7 @@ public class CompositeCollider : MonoBehaviour
 
         for (int i = 0; i < colliderTriangles.Count; i++)
         {
-            this.transform.rotation = Quaternion.Euler(0, 0, 0);
+            //this.transform.rotation = Quaternion.Euler(0, 0, 0);
 
             GameObject intermediateObject = new GameObject();
             intermediateObject.name = "Intermediate - " + i;
@@ -440,7 +431,7 @@ public class CompositeCollider : MonoBehaviour
             //colliderContainer.transform.localEulerAngles = new Vector3(colliderContainer.transform.localEulerAngles.x - objectRotation.x, colliderContainer.transform.localEulerAngles.y - objectRotation.y, colliderContainer.transform.localEulerAngles.z - objectRotation.z);
 
             //intermediateObject.SetActive(false);
-            this.transform.rotation = Quaternion.Euler(objectRotation.x, objectRotation.y, objectRotation.z);
+            //this.transform.rotation = Quaternion.Euler(objectRotation.x, objectRotation.y, objectRotation.z);
         }
 
         //this.transform.rotation = Quaternion.Euler(objectRotation.x, objectRotation.y, objectRotation.z);
@@ -449,12 +440,11 @@ public class CompositeCollider : MonoBehaviour
     public void UpdateCollider(int colliderIndex)
     {
         Vector3 objectScale = this.transform.localScale;
-        Vector3 objectRotation = this.transform.rotation.eulerAngles;
         GameObject intermediateObject = intermediateObjects[colliderIndex];
         GameObject colliderContainer = colliderContainers[colliderIndex];
         BoxCollider collider = colliders[colliderIndex];
 
-        this.transform.rotation = Quaternion.Euler(0, 0, 0);
+        //this.transform.rotation = Quaternion.Euler(0, 0, 0);
         Vector3 boxColliderCentre = Vector3.zero;
         for (int j = 0; j < 4; j++)
         {
@@ -470,15 +460,19 @@ public class CompositeCollider : MonoBehaviour
                                      mesh.normals[squareVertices[colliderIndex][2]] +
                                      mesh.normals[squareVertices[colliderIndex][3]]) / 4;
 
-        colliderContainer.transform.rotation = Quaternion.LookRotation(intermediateObject.transform.TransformDirection(averageNormal));
+        if(colliderIndex == index)
+        {
+            Debug.Log("OLD : " + intermediateObject.transform.TransformDirection(averageNormal));
+        }
 
+        colliderContainer.transform.rotation = Quaternion.LookRotation(intermediateObject.transform.TransformDirection(averageNormal), intermediateObject.transform.up);
         //colliderContainer.transform.forward = intermediateObject.transform.TransformDirection(averageNormal);
         colliderContainer.transform.localEulerAngles = new Vector3(colliderContainer.transform.localRotation.eulerAngles.x, colliderContainer.transform.localRotation.eulerAngles.y, 0);
 
-        Vector3 vec1 = this.transform.TransformDirection(mesh.vertices[unconnectedSquareNodes[colliderIndex][0]] - mesh.vertices[connectedSquareNodes[colliderIndex][0]]);
-        Vector3 vec2 = this.transform.TransformDirection(mesh.vertices[connectedSquareNodes[colliderIndex][1]] - mesh.vertices[unconnectedSquareNodes[colliderIndex][0]]);
-        Vector3 vec3 = this.transform.TransformDirection(mesh.vertices[unconnectedSquareNodes[colliderIndex][1]] - mesh.vertices[connectedSquareNodes[colliderIndex][1]]);
-        Vector3 vec4 = this.transform.TransformDirection(mesh.vertices[connectedSquareNodes[colliderIndex][0]] - mesh.vertices[unconnectedSquareNodes[colliderIndex][1]]);
+        Vector3 vec1 = this.transform.TransformDirection(intermediateObject.transform.TransformDirection(mesh.vertices[unconnectedSquareNodes[colliderIndex][0]] - mesh.vertices[connectedSquareNodes[colliderIndex][0]]));
+        Vector3 vec2 = this.transform.TransformDirection(intermediateObject.transform.TransformDirection(mesh.vertices[connectedSquareNodes[colliderIndex][1]] - mesh.vertices[unconnectedSquareNodes[colliderIndex][0]]));
+        Vector3 vec3 = this.transform.TransformDirection(intermediateObject.transform.TransformDirection(mesh.vertices[unconnectedSquareNodes[colliderIndex][1]] - mesh.vertices[connectedSquareNodes[colliderIndex][1]]));
+        Vector3 vec4 = this.transform.TransformDirection(intermediateObject.transform.TransformDirection(mesh.vertices[connectedSquareNodes[colliderIndex][0]] - mesh.vertices[unconnectedSquareNodes[colliderIndex][1]]));
 
         Vector3 averageSideVector = (vec2 - vec4).normalized;
 
@@ -497,7 +491,6 @@ public class CompositeCollider : MonoBehaviour
         intermediateObjects[colliderIndex] = intermediateObject;
         colliderContainers[colliderIndex] = colliderContainer;
         colliders[colliderIndex] = collider;
-        this.transform.rotation = Quaternion.Euler(objectRotation.x, objectRotation.y, objectRotation.z);
     }
 
     public void UpdateColliderGroup(List<int> colliderIndexes, int frameSpread = 1)
@@ -525,14 +518,22 @@ public class CompositeCollider : MonoBehaviour
         finishedRoutine = true;
     }
 
+    public void UpdateColliderNaive(List<int> colliderIndexes)
+    {
+        for (int i = 0; i < colliderIndexes.Count; i++)
+        {
+            UpdateCollider(colliderIndexes[i]);
+        }
+    }
+
     public void UpdateColliderGPU(List<int> colliderIndexes)
     {
-        //System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
-        //sw.Start();
         int kernelHandle = computeShader.FindKernel("Main");
         int kernelHandle2 = computeShader.FindKernel("Main2");
-        /*Vector3 objectRotation = this.transform.rotation.eulerAngles;
-        this.transform.rotation = Quaternion.Euler(0, 0, 0);
+        Vector3 objectRotation = this.transform.rotation.eulerAngles;
+        Vector3 k = this.transform.up;
+        //this.transform.rotation = Quaternion.Euler(0, 0, 0);
+        Vector3 kk = this.transform.up;
         collidersToUpdate = colliderIndexes.ToArray();
 
         IM_CC_TRSMs = new Matrix4x4[colliderIndexes.Count, 2];
@@ -563,10 +564,20 @@ public class CompositeCollider : MonoBehaviour
         meshNormalsBuffer.SetData(mesh.normals);
         computeShader.SetBuffer(kernelHandle, Shader.PropertyToID("meshNormals"), meshNormalsBuffer);
 
+        debugArray = new Vector3[colliderIndexes.Count];
+        debugBuffer = new ComputeBuffer(debugArray.Length, sizeof(float) * 3);
+        debugBuffer.SetData(debugArray);
+        computeShader.SetBuffer(kernelHandle, Shader.PropertyToID("debugBuffer"), debugBuffer);
+
         computeShader.Dispatch(kernelHandle, collidersToUpdate.Length, 1, 1);
 
         returnDetailsBuffer.GetData(returnDetails);
         returnDetailsBuffer.Dispose();
+
+        debugBuffer.GetData(debugArray);
+        debugBuffer.Dispose();
+
+        //Debug.Log(debugArray[index]);
 
         for (int i = 0; i < colliderIndexes.Count; i++)
         {
@@ -577,7 +588,7 @@ public class CompositeCollider : MonoBehaviour
 
             colliderContainer.transform.position = (Vector3)details[0];
             colliderContainer.transform.rotation = (Quaternion)details[1];
-            colliderContainer.transform.localEulerAngles = new Vector3(colliderContainer.transform.eulerAngles.x, colliderContainer.transform.eulerAngles.y, 0);
+            //colliderContainer.transform.localEulerAngles = new Vector3(colliderContainer.transform.eulerAngles.x, colliderContainer.transform.eulerAngles.y, 0);
 
             colliderContainers[currentIndex] = colliderContainer;
         }
@@ -587,36 +598,22 @@ public class CompositeCollider : MonoBehaviour
         meshVerticesBuffer.SetData(mesh.vertices);
         computeShader.SetBuffer(kernelHandle2, Shader.PropertyToID("meshVertices"), meshVerticesBuffer);
 
-        debugArray = new Vector3[colliderIndexes.Count];
-        debugBuffer = new ComputeBuffer(debugArray.Length, sizeof(float) * 3);
-        debugBuffer.SetData(debugArray);
-        computeShader.SetBuffer(kernelHandle2, Shader.PropertyToID("debugBuffer"), debugBuffer);
+        Matrix4x4 thisTransform_TRSM = MathFunctions.Get_TRS_Matrix(this.transform.position, this.transform.rotation.eulerAngles, this.transform.localScale);
+        computeShader.SetMatrix(Shader.PropertyToID("thisTransform"), thisTransform_TRSM);     
 
-        // Get the local transformation matrices of the colliderContainers
-        CC_Local_TRSMs = new Matrix4x4[colliderIndexes.Count];
-        for (int i = 0; i < colliderIndexes.Count; i++)
-        {
-            GameObject CC = colliderContainers[colliderIndexes[i]];
-            CC_Local_TRSMs[i] = Matrix4x4.TRS(CC.transform.localPosition, CC.transform.localRotation, CC.transform.localScale);
-        }
-
-        CCglobal_CClocal_TRSMs = new Matrix4x4[colliderIndexes.Count, 2];
+        CCglobal_CClocal_IMglobalTRSMs = new Matrix4x4[colliderIndexes.Count, 3];
         for (int i = 0; i < colliderIndexes.Count; i++)
         {
             GameObject CC = colliderContainers[colliderIndexes[i]];
 
-            CCglobal_CClocal_TRSMs[i, 0] = colliderContainers[colliderIndexes[i]].transform.localToWorldMatrix;
-            CCglobal_CClocal_TRSMs[i, 1] = Matrix4x4.TRS(CC.transform.localPosition, CC.transform.localRotation, CC.transform.localScale);
+            CCglobal_CClocal_IMglobalTRSMs[i, 0] = colliderContainers[colliderIndexes[i]].transform.localToWorldMatrix;
+            CCglobal_CClocal_IMglobalTRSMs[i, 1] = Matrix4x4.TRS(CC.transform.localPosition, CC.transform.localRotation, CC.transform.localScale);
+            CCglobal_CClocal_IMglobalTRSMs[i, 2] = intermediateObjects[colliderIndexes[i]].transform.localToWorldMatrix;
         }
 
-        // Send the local transformation matrices of the colliderContainers to the GPU
-        CC_Local_TRSM_Buffer = new ComputeBuffer(CC_Local_TRSMs.Length, sizeof(float) * 16);
-        CC_Local_TRSM_Buffer.SetData(CC_Local_TRSMs);
-        computeShader.SetBuffer(kernelHandle2, Shader.PropertyToID("CC_Local_TRSMs"), CC_Local_TRSM_Buffer);
-
-        CCglobal_CClocal_TRSM_Buffer = new ComputeBuffer(CCglobal_CClocal_TRSMs.Length, sizeof(float) * 16);
-        CCglobal_CClocal_TRSM_Buffer.SetData(CCglobal_CClocal_TRSMs);
-        computeShader.SetBuffer(kernelHandle2, Shader.PropertyToID("CCglobal_CClocal_TRSMs"), CCglobal_CClocal_TRSM_Buffer);
+        CCglobal_CClocal_IMglobal_TRSM_Buffer = new ComputeBuffer(CCglobal_CClocal_IMglobalTRSMs.Length, sizeof(float) * 16);
+        CCglobal_CClocal_IMglobal_TRSM_Buffer.SetData(CCglobal_CClocal_IMglobalTRSMs);
+        computeShader.SetBuffer(kernelHandle2, Shader.PropertyToID("CCglobal_CClocal_IMglobalTRSMs"), CCglobal_CClocal_IMglobal_TRSM_Buffer);
 
         // Resend the colliders to update indices to the GPU
         collidersToUpdateBuffer = new ComputeBuffer(collidersToUpdate.Length, sizeof(int));
@@ -628,33 +625,36 @@ public class CompositeCollider : MonoBehaviour
         returnDetails2_Buffer.SetData(returnDetails2);
         computeShader.SetBuffer(kernelHandle2, Shader.PropertyToID("returnDetails2"), returnDetails2_Buffer);
 
-        // Send the main transform to the GPU
-        Matrix4x4 thisTransform_TRSM = MathFunctions.Get_TRS_Matrix(this.transform.position, this.transform.rotation.eulerAngles, this.transform.localScale);
-        computeShader.SetMatrix(Shader.PropertyToID("thisTransform"), thisTransform_TRSM);
+        
+        System.Diagnostics.Stopwatch sw4 = new System.Diagnostics.Stopwatch();
 
         computeShader.Dispatch(kernelHandle2, collidersToUpdate.Length, 1, 1);
-
+        
         returnDetails2_Buffer.GetData(returnDetails2);
         returnDetails2_Buffer.Dispose();
 
         for (int i = 0; i < colliderIndexes.Count; i++)
         {
+            System.Diagnostics.Stopwatch sw5 = new System.Diagnostics.Stopwatch();
+            sw5.Start();
+
             int currentIndex = colliderIndexes[i];
             GameObject colliderContainer = colliderContainers[currentIndex];
             BoxCollider collider = colliders[currentIndex];
 
             colliderContainer.transform.localEulerAngles = new Vector3(colliderContainer.transform.localEulerAngles.x, colliderContainer.transform.localEulerAngles.y, -returnDetails2[i][3]);
+
             collider.size = new Vector3(returnDetails2[i][0], returnDetails2[i][1], returnDetails2[i][2]);
 
             colliderContainers[currentIndex] = colliderContainer;
             colliders[currentIndex] = collider;
         }
 
-        this.transform.rotation = Quaternion.Euler(objectRotation.x, objectRotation.y, objectRotation.z);
+        //this.transform.rotation = Quaternion.Euler(objectRotation.x, objectRotation.y, objectRotation.z);
 
-        sw.Stop();
-        Debug.Log("GPU Time : " + sw.Elapsed.TotalMilliseconds + " ; Colliders : " + colliderIndexes.Count);
-        */
+        //sw.Stop();
+        //Debug.Log("GPU Time : " + sw.Elapsed.TotalMilliseconds + " ; Colliders : " + colliderIndexes.Count);
+        //*/
     }
 
     private List<object> DecomposeReturnMatrix(Matrix4x4 returnMatrix)

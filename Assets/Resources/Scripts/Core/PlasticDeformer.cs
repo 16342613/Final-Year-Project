@@ -47,15 +47,9 @@ public class PlasticDeformer : Deformer
 
         maxReboundVelocity = new float[originalVertices.Length];
 
-        //ComputeShaderSetup();
-
         MeshManager meshManager = new MeshManager(this.GetComponent<MeshFilter>(), this.gameObject.name);
-        //test = meshManager.CalculateMeshStrengths();
-        //meshManager.DrawColliders();
 
         compositeCollider = this.gameObject.GetComponent<CompositeCollider>();
-        int k = compositeCollider.index;
-        WaitUntilReady();
 
         squareVertices = compositeCollider.squareVertices;
         unconnectedSquareNodes = compositeCollider.unconnectedSquareNodes;
@@ -63,15 +57,7 @@ public class PlasticDeformer : Deformer
         vertexSquareMapping = compositeCollider.vertexSquareMapping;
     }
 
-    private IEnumerator WaitUntilReady()
-    {
-        while (compositeCollider.ready == false)
-        {
-            yield return null;
-        }
-    }
-
-    void FixedUpdate()
+    void Update()
     {
         Stopwatch stopWatch = new Stopwatch();
         stopWatch.Start();
@@ -101,75 +87,44 @@ public class PlasticDeformer : Deformer
         deformedMesh.vertices = deformedVertices;
         deformedMesh.RecalculateNormals();
 
-        collidersToUpdate = collidersToUpdate.Distinct().ToList();
-
         if (collidersToUpdate.Count > 0)
         {
-            compositeCollider.UpdateColliderGPU(new List<int> { collidersToUpdate[0] });
+            GPU_Handover(collidersToUpdate);
+            compositeCollider.UpdateColliderGPU(collidersToUpdate);
+            //compositeCollider.UpdateColliderNaive(collidersToUpdate);
             stopWatch.Stop();
 
-            Debug.Log("TOTAL TIME : " + stopWatch.Elapsed.Milliseconds);
+            Debug.Log("TOTAL FRAME TIME : " + stopWatch.Elapsed.Milliseconds + " ; FPS : " + (1.0f / Time.deltaTime));
         }
     }
 
-    public void RespondToForce(Vector3 forceOrigin, float forceAmount)
+    private void GPU_Handover(List<int> newCollidersToUpdate)
     {
-        //TestGPU(forceOrigin, forceAmount);
-        for (int i = 0; i < deformedVertices.Length; i++)
-        {
-            PlasticDeformVertex(i, forceOrigin, forceAmount);
-        }
+        collidersToUpdate.AddRange(newCollidersToUpdate);
+        collidersToUpdate = collidersToUpdate.Distinct().ToList();
 
-        //Debug.Log("GPU Debug: " + debugArray[test] + "; \tCPU Debug: " + cpuSide[test] + "; \tGPU Vertex Position:" + verticesGPU[test] + "; \tCPU Vertex Position:" + deformedVertices[test] + "; \tGPU Vertex Velocity:" + vertexVelocitiesGPU[test] + "; \tCPU Vertex Velocity:" + vertexVelocities[test] + "; \tIndex:" + test + "; \tNo Problem:" + noProblem);
-    }
-
-    public void PlasticDeformVertex(int vertexIndex, Vector3 forceOrigin, float force)
-    {
-        float distance = Vector3.Distance(deformedVertices[vertexIndex], forceOrigin);
-
-        if (distance > force) return;
-
-        Vector3 forceOriginToVertex = deformedVertices[vertexIndex] - forceOrigin;
-        float forceAtVertex = force / (meshStrength + 5 * (distance * distance));
-        float vertexAcceleration = forceAtVertex / vertexMass;
-        vertexVelocities[vertexIndex] = forceOriginToVertex.normalized * vertexAcceleration;
-
-        Vector3 displacement = secondaryVertexArray[vertexIndex] - originalVertices[vertexIndex];
-        displacement *= uniformScale;
-
-        Vector3 reboundVelocity = displacement * springForce;
-
-        vertexVelocities[vertexIndex] -= reboundVelocity;
-        vertexVelocities[vertexIndex] *= 1f - damping * 0.02f;
-        secondaryVertexArray[vertexIndex] += vertexVelocities[vertexIndex] * 0.02f;
-
-        if (vertexIndex == 3000) Debug.Log("Max displacement: " + maxReboundVelocity[3000] + "; current: " + displacement.magnitude);
-
-        if (displacement.magnitude > maxReboundVelocity[vertexIndex])
-        {
-            maxReboundVelocity[vertexIndex] = displacement.magnitude;
-        }
-        else if (displacement.magnitude < maxReboundVelocity[vertexIndex] && returnToRestingForm == false)
-        {
-            return;
-        }
-
-        //vertexVelocities[vertexIndex] -= reboundVelocity;
-        //vertexVelocities[vertexIndex] *= 1f - damping * Time.deltaTime;
-        deformedVertices[vertexIndex] += vertexVelocities[vertexIndex] * 0.02f;
-        //cpuSide[vertexIndex] = vertexVelocities[vertexIndex];
+        
     }
 
     public void PlasticDeformVertexColliders(int vertexIndex, Vector3[] forceOrigins, float[] forces)
     {
         Vector3 vertVel = Vector3.zero;
         int noForceCount = 0;
+        float localRange = 0;
+        float totalForce = 0;
+
+        for(int i=0; i<forces.Length; i++)
+        {
+            totalForce += forces[i];
+        }
+
+        localRange = (totalForce / (float) forces.Length) * 0.1f;
 
         for (int i = 0; i < forceOrigins.Length; i++)
         {
             float distance = Vector3.Distance(deformedVertices[vertexIndex], forceOrigins[i]);
 
-            if (distance > range)
+            if (distance > localRange)
             {
                 noForceCount++;
 
@@ -217,44 +172,6 @@ public class PlasticDeformer : Deformer
         {
             collidersToUpdate.Add(vertexSquareMapping[vertexIndex][i]);
         }
-    }
-
-    public void PlasticDeformVertexPrototype(int vertexIndex, Vector3[] forceOrigins, float[] forces)
-    {
-        Vector3 vertVel = Vector3.zero;
-
-        for (int i = 0; i < forceOrigins.Length; i++)
-        {
-            float distance = Vector3.Distance(deformedVertices[vertexIndex], forceOrigins[i]);
-
-            if (distance > range) continue;
-
-            float forceAtVertex = forces[i] / (meshStrength + 5 * (distance * distance));
-            float vertexAcceleration = forceAtVertex / vertexMass;
-            vertVel += (deformedVertices[vertexIndex] - forceOrigins[i]).normalized * vertexAcceleration;
-        }
-
-        vertexVelocities[vertexIndex] = vertVel;
-
-        Vector3 displacement = secondaryVertexArray[vertexIndex] - originalVertices[vertexIndex];
-        displacement *= uniformScale;
-
-        Vector3 reboundVelocity = displacement * springForce;
-
-        vertexVelocities[vertexIndex] -= reboundVelocity;
-        vertexVelocities[vertexIndex] *= 1f - damping * Time.deltaTime;
-        secondaryVertexArray[vertexIndex] += vertexVelocities[vertexIndex] * Time.deltaTime;
-
-        if (reboundVelocity.magnitude > maxReboundVelocity[vertexIndex])
-        {
-            maxReboundVelocity[vertexIndex] = reboundVelocity.magnitude;
-        }
-        else if (reboundVelocity.magnitude < maxReboundVelocity[vertexIndex] && returnToRestingForm == false)
-        {
-            return;
-        }
-
-        deformedVertices[vertexIndex] = secondaryVertexArray[vertexIndex];
     }
 
     // Gizmos for debug

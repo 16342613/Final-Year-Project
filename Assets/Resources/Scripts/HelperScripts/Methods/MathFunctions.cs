@@ -201,6 +201,75 @@ public class MathFunctions
 
         return new Quaternion(q.x / mag, q.y / mag, q.z / mag, q.w / mag);
     }
+
+    // A conversion from unreal engine's LookAt to Unity's LookAt 
+    // https://forums.unrealengine.com/development-discussion/c-gameplay-programming/1482788-posting-the-source-code-for-lookrotation-for-those-who-need-it
+    public static Quaternion MyLookRotation(Vector3 lookAt, Vector3 upDirection)
+    {
+        Vector3 forward = lookAt;
+        Vector3 up = upDirection;
+
+
+        forward = Vector3.Normalize(forward);
+        up = up - (forward * Vector3.Dot(up, forward));
+        up = Vector3.Normalize(up);
+
+        Vector3 vector = Vector3.Normalize(forward);
+        Vector3 vector2 = Vector3.Cross(up, vector);
+        Vector3 vector3 = Vector3.Cross(vector, vector2);
+        float m00 = vector2.x;
+        float m01 = vector2.y;
+        float m02 = vector2.z;
+        float m10 = vector3.x;
+        float m11 = vector3.y;
+        float m12 = vector3.z;
+        float m20 = vector.x;
+        float m21 = vector.y;
+        float m22 = vector.z;
+
+
+        float num8 = (m00 + m11) + m22;
+        Quaternion quaternion = new Quaternion();
+        if (num8 > 0.0f)
+        {
+            float num = (float)Math.Sqrt(num8 + 1.0f);
+            quaternion.w = num * 0.5f;
+            num = 0.5f / num;
+            quaternion.x = (m12 - m21) * num;
+            quaternion.y = (m20 - m02) * num;
+            quaternion.z = (m01 - m10) * num;
+            return quaternion;
+        }
+        if ((m00 >= m11) && (m00 >= m22))
+        {
+            float num7 = (float)Math.Sqrt(((1.0f + m00) - m11) - m22);
+            float num4 = 0.5f / num7;
+            quaternion.x = 0.5f * num7;
+            quaternion.y = (m01 + m10) * num4;
+            quaternion.z = (m02 + m20) * num4;
+            quaternion.w = (m12 - m21) * num4;
+            return quaternion;
+        }
+        if (m11 > m22)
+        {
+            float num6 = (float)Math.Sqrt(((1.0f + m11) - m00) - m22);
+            float num3 = 0.5f / num6;
+            quaternion.x = (m10 + m01) * num3;
+            quaternion.y = 0.5f * num6;
+            quaternion.z = (m21 + m12) * num3;
+            quaternion.w = (m20 - m02) * num3;
+            return quaternion;
+        }
+        float num5 = (float)Math.Sqrt(((1.0f + m22) - m00) - m11);
+        float num2 = 0.5f / num5;
+        quaternion.x = (m20 + m02) * num2;
+        quaternion.y = (m21 + m12) * num2;
+        quaternion.z = 0.5f * num5;
+        quaternion.w = (m01 - m10) * num2;
+
+
+        return quaternion;
+    }
 }
 
 
