@@ -36,6 +36,11 @@ public class PlasticDeformer : Deformer
     public float range = 0.25f;
     public bool debug = false;
 
+    public int maxIdleFrames = 250;
+    public int updateThresholdPercentage = 10;
+    private int framesSinceGPUCall = 0;
+    private int updateThreshold;
+
     void Start()
     {
         objectRenderer = this.GetComponent<Renderer>();
@@ -55,14 +60,12 @@ public class PlasticDeformer : Deformer
         unconnectedSquareNodes = compositeCollider.unconnectedSquareNodes;
         connectedSquareNodes = compositeCollider.connectedSquareNodes;
         vertexSquareMapping = compositeCollider.vertexSquareMapping;
+
+        updateThreshold = Mathf.FloorToInt((float)compositeCollider.colliderTriangles.Count * ((float)updateThresholdPercentage / (float)100));
     }
 
     void Update()
     {
-        Stopwatch stopWatch = new Stopwatch();
-        stopWatch.Start();
-
-        collidersToUpdate.Clear();
         ParseContactPoints();
         frameCount = 0;
 
@@ -89,21 +92,43 @@ public class PlasticDeformer : Deformer
 
         if (collidersToUpdate.Count > 0)
         {
-            GPU_Handover(collidersToUpdate);
-            compositeCollider.UpdateColliderGPU(collidersToUpdate);
-            //compositeCollider.UpdateColliderNaive(collidersToUpdate);
-            stopWatch.Stop();
+            //if (this.transform.name.Equals("plate (1)"))
+            //{
+            //    Debug.Log(collidersToUpdate.Count);
+            //}
+            
+            if (collidersToUpdate.Count > updateThreshold)
+            {
+                GPU_Handover(collidersToUpdate);
+            }
 
-            Debug.Log("TOTAL FRAME TIME : " + stopWatch.Elapsed.Milliseconds + " ; FPS : " + (1.0f / Time.deltaTime));
+            framesSinceGPUCall++;
         }
+
+        if ((framesSinceGPUCall > maxIdleFrames) && (collidersToUpdate.Count > 0))
+        {
+            GPU_Handover(null, true);
+        }
+
+        //Debug.Log(framesSinceGPUCall + " ; " + collidersToUpdate.Count);
+        //Debug.Log("FPS : " + (1.0f / Time.deltaTime));
     }
 
-    private void GPU_Handover(List<int> newCollidersToUpdate)
+    private void GPU_Handover(List<int> newCollidersToUpdate, bool forceUpdate = false)
     {
-        collidersToUpdate.AddRange(newCollidersToUpdate);
-        collidersToUpdate = collidersToUpdate.Distinct().ToList();
+        if (forceUpdate == true)
+        {
+            collidersToUpdate = collidersToUpdate.Distinct().ToList();
+        }
+        else
+        {
+            collidersToUpdate.AddRange(newCollidersToUpdate);
+            collidersToUpdate = collidersToUpdate.Distinct().ToList();
+        }
 
-        
+        compositeCollider.UpdateColliderGPU(collidersToUpdate);
+        collidersToUpdate.Clear();
+        framesSinceGPUCall = 0;
     }
 
     public void PlasticDeformVertexColliders(int vertexIndex, Vector3[] forceOrigins, float[] forces)
@@ -113,12 +138,12 @@ public class PlasticDeformer : Deformer
         float localRange = 0;
         float totalForce = 0;
 
-        for(int i=0; i<forces.Length; i++)
+        for (int i = 0; i < forces.Length; i++)
         {
             totalForce += forces[i];
         }
 
-        localRange = (totalForce / (float) forces.Length) * 0.1f;
+        localRange = (totalForce / (float)forces.Length) * 0.1f;
 
         for (int i = 0; i < forceOrigins.Length; i++)
         {
@@ -170,7 +195,10 @@ public class PlasticDeformer : Deformer
 
         for (int i = 0; i < vertexSquareMapping[vertexIndex].Count; i++)
         {
-            collidersToUpdate.Add(vertexSquareMapping[vertexIndex][i]);
+            if (collidersToUpdate.Contains(vertexSquareMapping[vertexIndex][i]) == false)
+            {
+                collidersToUpdate.Add(vertexSquareMapping[vertexIndex][i]);
+            }
         }
     }
 

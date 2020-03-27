@@ -80,27 +80,6 @@ float4 MultiplyQuaternions(float4 q1, float4 q2)
     return float4(x, y, z, w);
 }
 
-float4 LookRotation(float3 dir, float3 up)
-{
-    if (dir[0] == 0 && dir[1] == 0 && dir[2] == 0)
-    {
-        return float4(0, 0, 0, 1);
-    }
-
-    if (CompareFloat3(up, dir) == false)
-    {
-        up = normalize(up);
-        float3 v = dir + up * -dot(up, dir);
-        float4 q = FromToRotation(float3(0, 0, 1), v);
-        
-        return MultiplyQuaternions(FromToRotation(v, dir), q);
-    }
-    else
-    {
-        return FromToRotation(float3(0, 0, 1), dir);
-    }
-}
-
 float3 TransformPoint(float3 toTransform, float4x4 trsMatrix)
 {
     float3 vector3;
@@ -120,7 +99,7 @@ float3 TransformDirection(float3 toTransform, float4 rotationQuaternion)
 {
     float3 t = float(2) * cross(float3(rotationQuaternion[0], rotationQuaternion[1], rotationQuaternion[2]), toTransform);
 
-    return toTransform + rotationQuaternion[3] * t + cross(float3(rotationQuaternion[0], rotationQuaternion[1], rotationQuaternion[2]), t);
+    return (toTransform + (rotationQuaternion[3] * t)) + cross(float3(rotationQuaternion[0], rotationQuaternion[1], rotationQuaternion[2]), t);
 }
 
 float4x4 GetTranslationMatrix(float3 position)
@@ -180,86 +159,6 @@ float3x3 GetAxisDirectionsFromTRSM(float4x4 trsm)
     return float3x3(trsm[0][0], trsm[1][0], trsm[2][0],
                     trsm[0][1], trsm[1][1], trsm[2][1],
                     trsm[0][2], trsm[1][2], trsm[2][2]);
-}
-
-// Returns [0] = position
-// Returns [1] = rotation
-// Returns [2] = scale
-float3x4 DecomposeTRSM(float4x4 TRSM)
-{
-    // In the order of translation, rotation, scale (ROW-MAJOR)
-
-    float4 position = float4(TRSM[0][3], TRSM[1][3], TRSM[2][3], 0);
-    float4 rotation = LookRotation(float3(TRSM[0][2], TRSM[1][2], TRSM[2][2]), float3(TRSM[0][1], TRSM[1][1], TRSM[2][1]));
-    float4 scale = float4(length(float3(TRSM[0][0], TRSM[1][0], TRSM[2][0])), length(float3(TRSM[0][1], TRSM[1][1], TRSM[2][1])), length(float3(TRSM[0][2], TRSM[1][2], TRSM[2][2])), 0);
-
-    float3x4 toReturn = float3x4(position[0], position[1], position[2], 0,
-                                rotation[0], rotation[1], rotation[2], rotation[3],
-                                scale[0], scale[1], scale[2], 0);
-    return toReturn;
-}
-
-float4x4 UpdatePosition(float4x4 TRSM, float3 newPosition)
-{
-    return float4x4(TRSM[0][0], TRSM[0][1], TRSM[0][2], newPosition[0],
-                    TRSM[1][0], TRSM[1][1], TRSM[1][2], newPosition[1],
-                    TRSM[2][0], TRSM[2][1], TRSM[2][2], newPosition[2],
-                    TRSM[3][0], TRSM[3][1], TRSM[3][2], TRSM[3][3]);
-}
-
-float3 ThreeAxisRot(float r11, float r12, float r21, float r31, float r32)
-{
-    return float3(asin(r21), atan2(r11, r12), atan2(r31, r32));
-}
-
-// NOT WORKING
-float3 QuaternionToEulerAngles(float4 q)
-{
-    float3 rotationRadians = ThreeAxisRot(2 * (q.x * q.z + q.w * q.y),
-                     q.w * q.w - q.x * q.x - q.y * q.y + q.z * q.z,
-                    -2 * (q.y * q.z - q.w * q.x),
-                     2 * (q.x * q.y + q.w * q.z),
-                     q.w * q.w - q.x * q.x + q.y * q.y - q.z * q.z);
-    
-    return float3(degrees(rotationRadians[0]), degrees(rotationRadians[1]), degrees(rotationRadians[2]));
-
-}
-
-// Since quaternions are too complicated without Unity's libraries,
-// we are just going to do the bulk of the processing and return it to Unity.
-float4x4 GenerateReturnMatrix(float3 position, float4 rotation, float3 scale)
-{
-    return float4x4(position[0], position[1], position[2], 0,
-                    rotation[0], rotation[1], rotation[2], rotation[3],
-                    scale[0], scale[1], scale[2], 0,
-                    0, 0, 0, 0);
-}
-
-float SqrMagnitude(float3 input)
-{
-    return (input[0] * input[0]) + (input[1] * input[1]) + (input[2] * input[2]);
-}
-
-float Angle(float3 from, float3 to)
-{
-    float denominator = sqrt(SqrMagnitude(from) * SqrMagnitude(to));
-    if (denominator < kEpsilonNormalSqrt)
-        return 0;
-
-    float dotProduct = clamp((dot(from, to) / denominator), -1, 1);
-    return degrees(acos(dotProduct));
-}
-
-float SignedAngle(float3 from, float3 to, float3 axis)
-{
-    float unsignedAngle = Angle(from, to);
-
-    float cross_x = from.y * to.z - from.z * to.y;
-    float cross_y = from.z * to.x - from.x * to.z;
-    float cross_z = from.x * to.y - from.y * to.x;
-    float angleSign = sign(axis.x * cross_x + axis.y * cross_y + axis.z * cross_z);
-    
-    return unsignedAngle * angleSign;
 }
 
 // A conversion from unreal engine's LookAt to Unity's LookAt 
@@ -332,6 +231,86 @@ float4 MyLookRotation(float3 lookAt, float3 upDirection)
     return quaternion;
 }
 
+// Returns [0] = position
+// Returns [1] = rotation
+// Returns [2] = scale
+float3x4 DecomposeTRSM(float4x4 TRSM)
+{
+    // In the order of translation, rotation, scale (ROW-MAJOR)
+
+    float4 position = float4(TRSM[0][3], TRSM[1][3], TRSM[2][3], 0);
+    float4 rotation = MyLookRotation(float3(TRSM[0][2], TRSM[1][2], TRSM[2][2]), float3(TRSM[0][1], TRSM[1][1], TRSM[2][1]));
+    float4 scale = float4(length(float3(TRSM[0][0], TRSM[1][0], TRSM[2][0])), length(float3(TRSM[0][1], TRSM[1][1], TRSM[2][1])), length(float3(TRSM[0][2], TRSM[1][2], TRSM[2][2])), 0);
+
+    float3x4 toReturn = float3x4(position[0], position[1], position[2], 0,
+                                rotation[0], rotation[1], rotation[2], rotation[3],
+                                scale[0], scale[1], scale[2], 0);
+    return toReturn;
+}
+
+float4x4 UpdatePosition(float4x4 TRSM, float3 newPosition)
+{
+    return float4x4(TRSM[0][0], TRSM[0][1], TRSM[0][2], newPosition[0],
+                    TRSM[1][0], TRSM[1][1], TRSM[1][2], newPosition[1],
+                    TRSM[2][0], TRSM[2][1], TRSM[2][2], newPosition[2],
+                    TRSM[3][0], TRSM[3][1], TRSM[3][2], TRSM[3][3]);
+}
+
+float3 ThreeAxisRot(float r11, float r12, float r21, float r31, float r32)
+{
+    return float3(asin(r21), atan2(r11, r12), atan2(r31, r32));
+}
+
+// NOT WORKING
+float3 QuaternionToEulerAngles(float4 q)
+{
+    float3 rotationRadians = ThreeAxisRot(2 * (q.x * q.z + q.w * q.y),
+                     q.w * q.w - q.x * q.x - q.y * q.y + q.z * q.z,
+                    -2 * (q.y * q.z - q.w * q.x),
+                     2 * (q.x * q.y + q.w * q.z),
+                     q.w * q.w - q.x * q.x + q.y * q.y - q.z * q.z);
+    
+    return float3(degrees(rotationRadians[0]), degrees(rotationRadians[1]), degrees(rotationRadians[2]));
+
+}
+
+// Since quaternions are too complicated without Unity's libraries,
+// we are just going to do the bulk of the processing and return it to Unity.
+float4x4 GenerateReturnMatrix(float3 position, float4 rotation, float3 scale)
+{
+    return float4x4(position[0], position[1], position[2], 0,
+                    rotation[0], rotation[1], rotation[2], rotation[3],
+                    scale[0], scale[1], scale[2], 0,
+                    0, 0, 0, 0);
+}
+
+float SqrMagnitude(float3 input)
+{
+    return (input[0] * input[0]) + (input[1] * input[1]) + (input[2] * input[2]);
+}
+
+float Angle(float3 from, float3 to)
+{
+    float denominator = sqrt(SqrMagnitude(from) * SqrMagnitude(to));
+    if (denominator < kEpsilonNormalSqrt)
+        return 0;
+
+    float dotProduct = clamp((dot(from, to) / denominator), -1, 1);
+    return degrees(acos(dotProduct));
+}
+
+float SignedAngle(float3 from, float3 to, float3 axis)
+{
+    float unsignedAngle = Angle(from, to);
+
+    float cross_x = from.y * to.z - from.z * to.y;
+    float cross_y = from.z * to.x - from.x * to.z;
+    float cross_z = from.x * to.y - from.y * to.x;
+    float angleSign = sign(axis.x * cross_x + axis.y * cross_y + axis.z * cross_z);
+    
+    return unsignedAngle * angleSign;
+}
+
 float3 RotateVectorByQuaternion(float3 v, float4 r)
 {
     float4 r_c = r * float4(-1, -1, -1, 1);
@@ -350,12 +329,12 @@ void Main(uint3 id : SV_DispatchThreadID)
                                 TransformPoint(meshVertices[squareVertices[(4 * colliderIndex) + 2]], currentIM_TRSM) +
                                 TransformPoint(meshVertices[squareVertices[(4 * colliderIndex) + 3]], currentIM_TRSM)) / 4;
     
+    //debugBuffer[id.x] = boxColliderCentre;
+    
     float3 averageNormal = (meshNormals[squareVertices[(4 * colliderIndex) + 0]] +
                             meshNormals[squareVertices[(4 * colliderIndex) + 1]] +
                             meshNormals[squareVertices[(4 * colliderIndex) + 2]] +
                             meshNormals[squareVertices[(4 * colliderIndex) + 3]]) / 4;
-    
-    debugBuffer[id.x] = TransformDirection(averageNormal, DecomposeTRSM(currentIM_TRSM)[1]);
     
     float4 rotation = MyLookRotation(TransformDirection(averageNormal, DecomposeTRSM(currentIM_TRSM)[1]), GetAxisDirectionsFromTRSM(currentIM_TRSM)[1]);
     
@@ -378,8 +357,6 @@ void Main2(uint3 id : SV_DispatchThreadID)
     float3 vec4 = TransformDirection(TransformDirection(meshVertices[squareNodeConnections[(4 * colliderIndex) + 0]] - meshVertices[squareNodeConnections[(4 * colliderIndex) + 3]], intermediateObjectRotation), transformRotation);
     
     float3 averageSideVector = normalize(vec2 - vec4);
-    
-    //debugBuffer[id.x] = averageSideVector;
     
     float3 correctColliderUp = cross(averageSideVector, TransformDirection(GetAxisDirectionsFromTRSM(colliderContainerGlobalTransform)[2], transformRotation));
     float3 currentColliderUp = TransformDirection(GetAxisDirectionsFromTRSM(colliderContainerGlobalTransform)[1], transformRotation);
