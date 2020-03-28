@@ -64,7 +64,7 @@ public class PlasticDeformer : Deformer
         updateThreshold = Mathf.FloorToInt((float)compositeCollider.colliderTriangles.Count * ((float)updateThresholdPercentage / (float)100));
     }
 
-    void Update()
+    void FixedUpdate()
     {
         ParseContactPoints();
         frameCount = 0;
@@ -92,6 +92,8 @@ public class PlasticDeformer : Deformer
 
         if (collidersToUpdate.Count > 0)
         {
+            GPU_Handover(collidersToUpdate);
+
             if (this.transform.name.Equals("Frame"))
             {
                 Debug.Log(collidersToUpdate.Count);
@@ -99,7 +101,7 @@ public class PlasticDeformer : Deformer
             
             if (collidersToUpdate.Count > updateThreshold)
             {
-                GPU_Handover(collidersToUpdate);
+                //GPU_Handover(collidersToUpdate);
             }
 
             framesSinceGPUCall++;
