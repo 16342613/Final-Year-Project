@@ -102,10 +102,6 @@ public class CompositeCollider : MonoBehaviour
             }
         }
 
-        squareVerticesBuffer = new ComputeBuffer(squareVerticesConverted.Length, sizeof(int));
-        squareVerticesBuffer.SetData(squareVerticesConverted);
-        computeShader.SetBuffer(computeShader.FindKernel("Main"), Shader.PropertyToID("squareVertices"), squareVerticesBuffer);
-
         squareNodeConnections = new int[colliderTriangles.Count, 4];
         for (int i = 0; i < colliderTriangles.Count; i++)
         {
@@ -114,10 +110,6 @@ public class CompositeCollider : MonoBehaviour
             squareNodeConnections[i, 2] = unconnectedSquareNodes[i][0];
             squareNodeConnections[i, 3] = unconnectedSquareNodes[i][1];
         }
-
-        squareNodeConnections_Buffer = new ComputeBuffer(squareNodeConnections.Length, sizeof(int));
-        squareNodeConnections_Buffer.SetData(squareNodeConnections);
-        computeShader.SetBuffer(computeShader.FindKernel("Main2"), Shader.PropertyToID("squareNodeConnections"), squareNodeConnections_Buffer);
     }
 
     // Update is called once per frame
@@ -254,30 +246,58 @@ public class CompositeCollider : MonoBehaviour
 
             // Create the box collider component itself
             BoxCollider boxCollider = colliderContainer.AddComponent<BoxCollider>();
-            // Rotate the box collider to zero on its z axis to make future calculation easier
-            colliderContainer.transform.localRotation = Quaternion.Euler(colliderContainer.transform.localRotation.eulerAngles.x, colliderContainer.transform.localRotation.eulerAngles.y, 0);
+            // Rotate the box collider to zero on its z axis to make future calculations consistent
+            colliderContainer.transform.localRotation = Quaternion.Euler(colliderContainer.transform.localRotation.eulerAngles.x,
+                                                                         colliderContainer.transform.localRotation.eulerAngles.y,
+                                                                         0);
 
-            Vector3 vec1 = this.transform.TransformDirection(mesh.vertices[unconnectedSquareNodes[i][0]] - mesh.vertices[connectedSquareNodes[i][0]]);
-            Vector3 vec2 = this.transform.TransformDirection(mesh.vertices[connectedSquareNodes[i][1]] - mesh.vertices[unconnectedSquareNodes[i][0]]);
-            Vector3 vec3 = this.transform.TransformDirection(mesh.vertices[unconnectedSquareNodes[i][1]] - mesh.vertices[connectedSquareNodes[i][1]]);
-            Vector3 vec4 = this.transform.TransformDirection(mesh.vertices[connectedSquareNodes[i][0]] - mesh.vertices[unconnectedSquareNodes[i][1]]);
+            // The first pair of opposite sides in the SCTP polygon
+            Vector3 vec2 = this.transform.TransformDirection(mesh.vertices[connectedSquareNodes[i][1]] -
+                                                             mesh.vertices[unconnectedSquareNodes[i][0]]);
+            Vector3 vec4 = this.transform.TransformDirection(mesh.vertices[connectedSquareNodes[i][0]] -
+                                                             mesh.vertices[unconnectedSquareNodes[i][1]]);
 
+            // The second pair of opposite sides in the SCTP polygon
+            Vector3 vec1 = this.transform.TransformDirection(mesh.vertices[unconnectedSquareNodes[i][0]] -
+                                                             mesh.vertices[connectedSquareNodes[i][0]]);
+            Vector3 vec3 = this.transform.TransformDirection(mesh.vertices[unconnectedSquareNodes[i][1]] -
+                                                             mesh.vertices[connectedSquareNodes[i][1]]);
+
+            // NOTE: The first and second pairs are interchangeable, the order doesn't matter.
+
+            // Get the average side vector's direction
             Vector3 averageSideVector = (vec2 - vec4).normalized;
 
             Vector3 correctColliderUp = Vector3.Cross(averageSideVector, this.transform.TransformDirection(colliderContainer.transform.forward));
+            // Get the collider container's current y axis direction in global space
             Vector3 currentColliderUp = this.transform.TransformDirection(colliderContainer.transform.up);
-            float rotationAngle = Vector3.SignedAngle(correctColliderUp, currentColliderUp, this.transform.TransformDirection(boxCollider.transform.forward));
-            //colliderContainer.transform.localEulerAngles = new Vector3(colliderContainer.transform.localEulerAngles.x, colliderContainer.transform.localEulerAngles.y, -rotationAngle);
+            // Get the rotation angle between the current and desired y axis rotations
+            float rotationAngle = Vector3.SignedAngle(correctColliderUp,
+                                                      currentColliderUp,
+                                                      this.transform.TransformDirection(boxCollider.transform.forward));
+            // Update the collider container's z axis rotation to make it's y axis align with the average side vector
+            colliderContainer.transform.localEulerAngles = new Vector3(colliderContainer.transform.localEulerAngles.x,
+                                                                       colliderContainer.transform.localEulerAngles.y,
+                                                                       -rotationAngle);
 
+            // Arrange the side vectors into a list
             List<Vector3> sideVectors = new List<Vector3> { vec1, vec2, vec3, vec4 };
-            List<float> slopeDirections = new List<float> { Mathf.Abs(Vector3.Dot(vec1.normalized, this.transform.TransformDirection(colliderContainer.transform.up))),
-                                                            Mathf.Abs(Vector3.Dot(vec2.normalized, this.transform.TransformDirection(colliderContainer.transform.up))),
-                                                            Mathf.Abs(Vector3.Dot(vec3.normalized, this.transform.TransformDirection(colliderContainer.transform.up))),
-                                                            Mathf.Abs(Vector3.Dot(vec4.normalized, this.transform.TransformDirection(colliderContainer.transform.up))) };
+            // Compare the side vectors with the box collider's y axis
+            List<float> slopeDirections = new List<float> { Mathf.Abs(Vector3.Dot(vec1.normalized,
+                                                                this.transform.TransformDirection(colliderContainer.transform.up))),
+                                                            Mathf.Abs(Vector3.Dot(vec2.normalized,
+                                                                this.transform.TransformDirection(colliderContainer.transform.up))),
+                                                            Mathf.Abs(Vector3.Dot(vec3.normalized,
+                                                                this.transform.TransformDirection(colliderContainer.transform.up))),
+                                                            Mathf.Abs(Vector3.Dot(vec4.normalized,
+                                                                this.transform.TransformDirection(colliderContainer.transform.up))) };
 
+            // Lists to store the x and y side vectors
             List<float> xSidesLengths = new List<float>();
             List<float> ySidesLengths = new List<float>();
 
+            // If we store the indexes of the x and y vectors in the sideVectors list,
+            // we don't need to do this step during runtime
             _SideOrder sideOrder = new _SideOrder();
             sideOrder.x = new List<int>();
             sideOrder.y = new List<int>();
@@ -286,11 +306,13 @@ public class CompositeCollider : MonoBehaviour
             for (int j = 0; j < 4; j++)
             {
                 // 1 x 1 x cos(45) = 0.707107
+                // dotproduct > cos(45) --> X side vector
                 if (slopeDirections[j] > 0.707107f)
                 {
                     ySidesLengths.Add(sideVectors[j].magnitude);
                     sideOrders[i].y.Add(j);
                 }
+                // dotproduct < cos(45) --> Y side vector
                 else if (slopeDirections[j] < 0.707107f)
                 {
                     xSidesLengths.Add(sideVectors[j].magnitude);
@@ -298,7 +320,9 @@ public class CompositeCollider : MonoBehaviour
                 }
             }
 
-            boxCollider.size = new Vector3(0.05f, 0.05f, 0.01f);//new Vector3(((xSidesLengths[0] + xSidesLengths[1]) / 2) * objectScale.x, ((ySidesLengths[0] + ySidesLengths[1]) / 2) * objectScale.y, colliderHeight);
+            // Set the size of the box collider
+            boxCollider.size = new Vector3(((xSidesLengths[0] + xSidesLengths[1]) / 2) * objectScale.x, ((ySidesLengths[0] + ySidesLengths[1]) / 2) * objectScale.y, colliderHeight);
+            // Add the created objects into a list to be used during runtime manipulation
             intermediateObjects.Add(intermediateObject);
             colliderContainers.Add(colliderContainer);
             colliders.Add(boxCollider);
@@ -427,6 +451,8 @@ public class CompositeCollider : MonoBehaviour
         //this.transform.rotation = Quaternion.Euler(objectRotation.x, objectRotation.y, objectRotation.z);
     }
 
+    // REDUNDANT
+    /// REFERENCE POINT 9
     public void UpdateCollider(int colliderIndex)
     {
         Vector3 objectScale = this.transform.localScale;
@@ -521,10 +547,7 @@ public class CompositeCollider : MonoBehaviour
     {
         int kernelHandle = computeShader.FindKernel("Main");
         int kernelHandle2 = computeShader.FindKernel("Main2");
-        Vector3 objectRotation = this.transform.rotation.eulerAngles;
-        Vector3 k = this.transform.up;
-        //this.transform.rotation = Quaternion.Euler(0, 0, 0);
-        Vector3 kk = this.transform.up;
+
         collidersToUpdate = colliderIndexes.ToArray();
 
         IM_CC_TRSMs = new Matrix4x4[colliderIndexes.Count, 2];
@@ -556,28 +579,26 @@ public class CompositeCollider : MonoBehaviour
         computeShader.SetBuffer(kernelHandle, Shader.PropertyToID("meshNormals"), meshNormalsBuffer);
 
         debugArray = new Vector3[colliderIndexes.Count];
-
-        if (this.transform.name.Equals("Frame"))
-        {
-            debugArray[0] = new Vector3(69, 69, 69);
-        }
-
         debugBuffer = new ComputeBuffer(debugArray.Length, sizeof(float) * 3);
         debugBuffer.SetData(debugArray);
         computeShader.SetBuffer(kernelHandle, Shader.PropertyToID("debugBuffer"), debugBuffer);
 
-        computeShader.Dispatch(kernelHandle, collidersToUpdate.Length, 1, 1);
+        // TODO DONT SEND THE ENTIRE ARRAY OVER!
+        squareVerticesBuffer = new ComputeBuffer(squareVerticesConverted.Length, sizeof(int));
+        squareVerticesBuffer.SetData(squareVerticesConverted);
+        computeShader.SetBuffer(computeShader.FindKernel("Main"), Shader.PropertyToID("squareVertices"), squareVerticesBuffer);
 
+        // TODO DONT SEND THE ENTIRE ARRAY OVER!
+        squareNodeConnections_Buffer = new ComputeBuffer(squareNodeConnections.Length, sizeof(int));
+        squareNodeConnections_Buffer.SetData(squareNodeConnections);
+        computeShader.SetBuffer(computeShader.FindKernel("Main2"), Shader.PropertyToID("squareNodeConnections"), squareNodeConnections_Buffer);
+
+        computeShader.Dispatch(kernelHandle, collidersToUpdate.Length, 1, 1);
         returnDetailsBuffer.GetData(returnDetails);
         returnDetailsBuffer.Dispose();
 
         debugBuffer.GetData(debugArray);
-        debugBuffer.Dispose();
-
-        if (this.transform.name.Equals("Roof"))
-        {
-            Debug.Log("NEW: " + debugArray[index]);
-        }
+        debugBuffer.Dispose();    
 
         for (int i = 0; i < colliderIndexes.Count; i++)
         {
@@ -625,9 +646,6 @@ public class CompositeCollider : MonoBehaviour
         returnDetails2_Buffer.SetData(returnDetails2);
         computeShader.SetBuffer(kernelHandle2, Shader.PropertyToID("returnDetails2"), returnDetails2_Buffer);
 
-
-        System.Diagnostics.Stopwatch sw4 = new System.Diagnostics.Stopwatch();
-
         computeShader.Dispatch(kernelHandle2, collidersToUpdate.Length, 1, 1);
 
         returnDetails2_Buffer.GetData(returnDetails2);
@@ -635,8 +653,6 @@ public class CompositeCollider : MonoBehaviour
 
         for (int i = 0; i < colliderIndexes.Count; i++)
         {
-            System.Diagnostics.Stopwatch sw5 = new System.Diagnostics.Stopwatch();
-            sw5.Start();
 
             int currentIndex = colliderIndexes[i];
             GameObject colliderContainer = colliderContainers[currentIndex];

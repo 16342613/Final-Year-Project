@@ -92,10 +92,10 @@ public class PlasticDeformer : Deformer
 
         if (collidersToUpdate.Count > 0)
         {
-            //if (this.transform.name.Equals("plate (1)"))
-            //{
-            //    Debug.Log(collidersToUpdate.Count);
-            //}
+            if (this.transform.name.Equals("Frame"))
+            {
+                Debug.Log(collidersToUpdate.Count);
+            }
             
             if (collidersToUpdate.Count > updateThreshold)
             {

@@ -329,8 +329,6 @@ void Main(uint3 id : SV_DispatchThreadID)
                                 TransformPoint(meshVertices[squareVertices[(4 * colliderIndex) + 2]], currentIM_TRSM) +
                                 TransformPoint(meshVertices[squareVertices[(4 * colliderIndex) + 3]], currentIM_TRSM)) / 4;
     
-    //debugBuffer[id.x] = boxColliderCentre;
-    
     float3 averageNormal = (meshNormals[squareVertices[(4 * colliderIndex) + 0]] +
                             meshNormals[squareVertices[(4 * colliderIndex) + 1]] +
                             meshNormals[squareVertices[(4 * colliderIndex) + 2]] +
