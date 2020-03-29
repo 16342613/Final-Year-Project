@@ -238,7 +238,7 @@ namespace HelperScripts.Methods
                     // If the the difference between the internal angle and the ideal internal angle (90 degrees to form a 
                     // perfect square) is greater than the threshold angle (20 degrees is optimal, but can be tuned if 
                     // necessary), this polygon is not roughly square.
-                    if (Mathf.Abs(90 - polygonInternalAngles[j]) > 20)
+                    if (Mathf.Abs(90 - polygonInternalAngles[j]) > 25)
                     {
                         approximatelySquare = false;
                         break;
