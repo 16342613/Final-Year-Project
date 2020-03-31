@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
+using System;
 
 public class Deformer : MonoBehaviour
 {
@@ -11,7 +12,7 @@ public class Deformer : MonoBehaviour
     protected Vector3[] vertexVelocities;
     protected List<Vector3> contactPoints = new List<Vector3>();
     protected Dictionary<float, Vector3> contactDetails = new Dictionary<float, Vector3>();
-    
+
     [HideInInspector]
     public Dictionary<GameObject, ContactPoint[]> contactInfo = new Dictionary<GameObject, ContactPoint[]>();
     [HideInInspector]
@@ -79,26 +80,40 @@ public class Deformer : MonoBehaviour
                     {
                         if (i == 0)
                         {
-                            contactDetails.Add(collisionInfo[contactInfo.ElementAt(i).Key], averageContactPoint);
+                            TryAddDetails(collisionInfo[contactInfo.ElementAt(i).Key], averageContactPoint);
                             contactPoints.Add(averageContactPoint);
                         }
                         else
                         {
-                            contactDetails.Add(collisionInfo[contactInfo.ElementAt(i).Key], averageContactPoint);
+                            TryAddDetails(collisionInfo[contactInfo.ElementAt(i).Key], averageContactPoint);
                             contactPoints.Add(averageContactPoint);
                         }
                     }
                 }
 
-                if(addAllPoints == true)
+                if (addAllPoints == true)
                 {
                     for (int j = 0; j < collisionArray.Length; j++)
                     {
-                        contactDetails.Add(collisionInfo[contactInfo.ElementAt(i).Key], this.transform.InverseTransformPoint(collisionArray[j].point) + this.transform.InverseTransformDirection(collisionArray[j].normal) * 0.05f);
+                        TryAddDetails(collisionInfo[contactInfo.ElementAt(i).Key], this.transform.InverseTransformPoint(collisionArray[j].point) + this.transform.InverseTransformDirection(collisionArray[j].normal) * 0.05f);
                         contactPoints.Add(this.transform.InverseTransformPoint(collisionArray[j].point) + this.transform.InverseTransformDirection(collisionArray[j].normal) * 0.05f);
                     }
                 }
             }
         }
     }
+
+    private void TryAddDetails(float force, Vector3 averageContactPoint)
+    {
+        try
+        {
+            contactDetails.Add(force, averageContactPoint);
+        }
+        catch (ArgumentException)
+        {
+            force += 0.001f;
+            TryAddDetails(force, averageContactPoint);
+        }
+    }
 }
+

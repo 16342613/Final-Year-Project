@@ -330,6 +330,13 @@ public class CompositeCollider : MonoBehaviour
 
         this.transform.rotation = Quaternion.Euler(objectRotation.x, objectRotation.y, objectRotation.z);
 
+        Rigidbody rigidBody = this.GetComponent<Rigidbody>();
+        if (rigidBody != null)
+        {
+            rigidBody.position = this.transform.position;
+            rigidBody.rotation = this.transform.rotation;
+        }
+
         sidesXYConverted = new int[colliderContainers.Count, 4];
         for (int i = 0; i < colliderContainers.Count; i++)
         {
@@ -583,12 +590,10 @@ public class CompositeCollider : MonoBehaviour
         debugBuffer.SetData(debugArray);
         computeShader.SetBuffer(kernelHandle, Shader.PropertyToID("debugBuffer"), debugBuffer);
 
-        // TODO DONT SEND THE ENTIRE ARRAY OVER!
         squareVerticesBuffer = new ComputeBuffer(squareVerticesConverted.Length, sizeof(int));
         squareVerticesBuffer.SetData(squareVerticesConverted);
         computeShader.SetBuffer(computeShader.FindKernel("Main"), Shader.PropertyToID("squareVertices"), squareVerticesBuffer);
 
-        // TODO DONT SEND THE ENTIRE ARRAY OVER!
         squareNodeConnections_Buffer = new ComputeBuffer(squareNodeConnections.Length, sizeof(int));
         squareNodeConnections_Buffer.SetData(squareNodeConnections);
         computeShader.SetBuffer(computeShader.FindKernel("Main2"), Shader.PropertyToID("squareNodeConnections"), squareNodeConnections_Buffer);
@@ -598,7 +603,7 @@ public class CompositeCollider : MonoBehaviour
         returnDetailsBuffer.Dispose();
 
         debugBuffer.GetData(debugArray);
-        debugBuffer.Dispose();    
+        debugBuffer.Dispose();
 
         for (int i = 0; i < colliderIndexes.Count; i++)
         {

@@ -93,11 +93,6 @@ public class PlasticDeformer : Deformer
         if (collidersToUpdate.Count > 0)
         {
             GPU_Handover(collidersToUpdate);
-
-            if (this.transform.name.Equals("Frame"))
-            {
-                Debug.Log(collidersToUpdate.Count);
-            }
             
             if (collidersToUpdate.Count > updateThreshold)
             {
