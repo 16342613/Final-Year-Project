@@ -24,12 +24,8 @@ public class PlasticDeformer : Deformer
     private int frameCount = 0;
 
     private Vector3[] secondaryVertexArray;
-    private Vector3[] test;
 
     private CompositeCollider compositeCollider;
-    private List<List<int>> squareVertices;
-    private List<List<int>> connectedSquareNodes;
-    private List<List<int>> unconnectedSquareNodes;
     private Dictionary<int, List<int>> vertexSquareMapping = new Dictionary<int, List<int>>();
     private List<int> collidersToUpdate = new List<int>();
 
@@ -56,9 +52,6 @@ public class PlasticDeformer : Deformer
 
         compositeCollider = this.gameObject.GetComponent<CompositeCollider>();
 
-        squareVertices = compositeCollider.squareVertices;
-        unconnectedSquareNodes = compositeCollider.unconnectedSquareNodes;
-        connectedSquareNodes = compositeCollider.connectedSquareNodes;
         vertexSquareMapping = compositeCollider.vertexSquareMapping;
 
         updateThreshold = Mathf.FloorToInt((float)compositeCollider.colliderTriangles.Count * ((float)updateThresholdPercentage / (float)100));
@@ -93,7 +86,7 @@ public class PlasticDeformer : Deformer
         if (collidersToUpdate.Count > 0)
         {
             GPU_Handover(collidersToUpdate);
-            
+
             if (collidersToUpdate.Count > updateThreshold)
             {
                 //GPU_Handover(collidersToUpdate);
@@ -192,10 +185,10 @@ public class PlasticDeformer : Deformer
 
         for (int i = 0; i < vertexSquareMapping[vertexIndex].Count; i++)
         {
-            if (collidersToUpdate.Contains(vertexSquareMapping[vertexIndex][i]) == false)
-            {
+            //if (collidersToUpdate.Contains(vertexSquareMapping[vertexIndex][i]) == false)
+            //{
                 collidersToUpdate.Add(vertexSquareMapping[vertexIndex][i]);
-            }
+            //}
         }
     }
 

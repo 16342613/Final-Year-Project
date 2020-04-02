@@ -7,5 +7,6 @@ public class JointHandler : MonoBehaviour
     void OnJointBreak(float breakForce)
     {
         this.transform.parent = null;
+        Debug.Log(this.transform.name + " is broken off!");
     }
 }

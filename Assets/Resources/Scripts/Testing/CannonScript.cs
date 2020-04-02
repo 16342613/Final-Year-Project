@@ -20,6 +20,8 @@ public class CannonScript : MonoBehaviour
     // Update is called once per frame
     void FixedUpdate()
     {
+        this.transform.position = Camera.main.transform.position;
+
         if (Input.GetMouseButton(0))
         {
             FireCannon();
@@ -32,7 +34,7 @@ public class CannonScript : MonoBehaviour
 
         frameCount++;
 
-        DeleteOutOfBounds();
+        //DeleteOutOfBounds();
         
     }
 
