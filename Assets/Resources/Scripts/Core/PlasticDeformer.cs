@@ -85,11 +85,11 @@ public class PlasticDeformer : Deformer
 
         if (collidersToUpdate.Count > 0)
         {
-            GPU_Handover(collidersToUpdate);
+           //GPU_Handover(collidersToUpdate);  // Update every frame no matter what
 
             if (collidersToUpdate.Count > updateThreshold)
             {
-                //GPU_Handover(collidersToUpdate);
+                GPU_Handover(collidersToUpdate);
             }
 
             framesSinceGPUCall++;
@@ -185,10 +185,10 @@ public class PlasticDeformer : Deformer
 
         for (int i = 0; i < vertexSquareMapping[vertexIndex].Count; i++)
         {
-            //if (collidersToUpdate.Contains(vertexSquareMapping[vertexIndex][i]) == false)
-            //{
-                collidersToUpdate.Add(vertexSquareMapping[vertexIndex][i]);
-            //}
+            if (collidersToUpdate.Contains(vertexSquareMapping[vertexIndex][i]) == false)
+            {
+            collidersToUpdate.Add(vertexSquareMapping[vertexIndex][i]);
+            }
         }
     }
 

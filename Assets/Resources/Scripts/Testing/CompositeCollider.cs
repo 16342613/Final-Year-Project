@@ -27,6 +27,7 @@ public class CompositeCollider : MonoBehaviour
     private MeshManager meshManager;
     public Dictionary<int, List<int>> vertexSquareMapping;
     public bool finishedRoutine = true;
+    GameObject child;
 
     #region Compute shader variables
 
@@ -45,8 +46,8 @@ public class CompositeCollider : MonoBehaviour
     private Matrix4x4[] returnDetails;
     private ComputeBuffer returnDetailsBuffer;
 
-    private Matrix4x4[,] IM_CC_TRSMs;
-    private ComputeBuffer IM_CC_TRSM_Buffer;
+    private Matrix4x4[] IM_TRSMs;
+    private ComputeBuffer IM_TRSM_Buffer;
 
     private int[,] squareNodeConnections;
     private ComputeBuffer squareNodeConnections_Buffer;
@@ -75,7 +76,7 @@ public class CompositeCollider : MonoBehaviour
     void Start()
     {
         // Call the compute shader
-        computeShader = Resources.Load<ComputeShader>("Shaders/DeformationShader");
+        computeShader = Resources.Load<ComputeShader>("Shaders/ColliderShader");
 
         // Get the details of the mesh from MeshManager
         mesh = this.GetComponent<MeshFilter>().mesh;
@@ -109,48 +110,9 @@ public class CompositeCollider : MonoBehaviour
         }
     }
 
-    private void DoRayCast()
+    public void KillColliders()
     {
-        RaycastHit[] hit = new RaycastHit[6];
-
-        for (int i = 0; i < 6; i++)
-        {
-            Vector3 direction = Vector3.zero;
-
-            switch (i)
-            {
-                case 0:
-                    direction = transform.forward;
-                    break;
-
-                case 1:
-                    direction = transform.up;
-                    break;
-
-                case 2:
-                    direction = -transform.forward;
-                    break;
-
-                case 3:
-                    direction = -transform.up;
-                    break;
-
-                case 4:
-                    direction = transform.right;
-                    break;
-
-                case 5:
-                    direction = -transform.right;
-                    break;
-            }
-
-            directions[i] = direction;
-
-            if (Physics.Raycast(origin, direction, out hit[i]))
-            {
-                //Debug.Log(hit[i].collider.gameObject.name);
-            }
-        }
+        GameObject.Destroy(child);
     }
 
     /// REFERENCE POINT 7
@@ -161,7 +123,7 @@ public class CompositeCollider : MonoBehaviour
         Vector3 objectRotation = this.transform.rotation.eulerAngles;
         int CC_Layer = LayerMask.NameToLayer("Composite Collider");
         // A nice way to put the colliders into their own folder
-        GameObject child = new GameObject();
+        child = new GameObject();
         child.name = "Colliders";
         child.transform.position = transform.position;
         child.transform.parent = this.gameObject.transform;
@@ -305,7 +267,6 @@ public class CompositeCollider : MonoBehaviour
 
         sidesXY_Buffer = new ComputeBuffer(sidesXYConverted.Length, sizeof(int));
         sidesXY_Buffer.SetData(sidesXYConverted);
-        computeShader.SetBuffer(computeShader.FindKernel("Main2"), Shader.PropertyToID("sideOrders_XY"), sidesXY_Buffer);
     }
 
     public void DrawColliders()
@@ -510,25 +471,24 @@ public class CompositeCollider : MonoBehaviour
     /// REFERENCE POINT 10
     public void UpdateColliderGPU(List<int> colliderIndexes)
     {
-        int kernelHandle = computeShader.FindKernel("Main");
-        int kernelHandle2 = computeShader.FindKernel("Main2");
+        int kernelHandle = computeShader.FindKernel("RecalculateCentreAndXYRotations");
+        int kernelHandle2 = computeShader.FindKernel("RecalculateColliderZRotationAndSize");
 
         collidersToUpdate = colliderIndexes.ToArray();
 
         // Send the intermediate object and collider container transformation matrices to the GPU in the same buffer
-        IM_CC_TRSMs = new Matrix4x4[colliderIndexes.Count, 2];
+        IM_TRSMs = new Matrix4x4[colliderIndexes.Count];
         for (int i = 0; i < colliderIndexes.Count; i++)
         {
-            IM_CC_TRSMs[i, 0] = intermediateObjects[colliderIndexes[i]].transform.localToWorldMatrix;
-            IM_CC_TRSMs[i, 1] = colliderContainers[colliderIndexes[i]].transform.localToWorldMatrix;
+            IM_TRSMs[i] = intermediateObjects[colliderIndexes[i]].transform.localToWorldMatrix;
         }
 
         // Initialise the buffer
-        IM_CC_TRSM_Buffer = new ComputeBuffer(IM_CC_TRSMs.Length, sizeof(float) * 16);
+        IM_TRSM_Buffer = new ComputeBuffer(IM_TRSMs.Length, sizeof(float) * 16);
         // Add the data to the buffer
-        IM_CC_TRSM_Buffer.SetData(IM_CC_TRSMs);
+        IM_TRSM_Buffer.SetData(IM_TRSMs);
         // Send the buffer to the GPU
-        computeShader.SetBuffer(kernelHandle, Shader.PropertyToID("IM_CC_TRSMs"), IM_CC_TRSM_Buffer);
+        computeShader.SetBuffer(kernelHandle, Shader.PropertyToID("IM_TRSMs"), IM_TRSM_Buffer);
 
         meshVerticesBuffer = new ComputeBuffer(mesh.vertices.Length, sizeof(float) * 3);
         meshVerticesBuffer.SetData(mesh.vertices);
@@ -549,11 +509,7 @@ public class CompositeCollider : MonoBehaviour
 
         squareVerticesBuffer = new ComputeBuffer(squareVerticesConverted.Length, sizeof(int));
         squareVerticesBuffer.SetData(squareVerticesConverted);
-        computeShader.SetBuffer(computeShader.FindKernel("Main"), Shader.PropertyToID("squareVertices"), squareVerticesBuffer);
-
-        squareNodeConnections_Buffer = new ComputeBuffer(squareNodeConnections.Length, sizeof(int));
-        squareNodeConnections_Buffer.SetData(squareNodeConnections);
-        computeShader.SetBuffer(computeShader.FindKernel("Main2"), Shader.PropertyToID("squareNodeConnections"), squareNodeConnections_Buffer);
+        computeShader.SetBuffer(kernelHandle, Shader.PropertyToID("squareVertices"), squareVerticesBuffer);
 
         computeShader.Dispatch(kernelHandle, collidersToUpdate.Length, 1, 1);
 
@@ -573,9 +529,6 @@ public class CompositeCollider : MonoBehaviour
             colliderContainers[currentIndex] = colliderContainer;
         }
 
-        // Resend the vertices array to the GPU 2nd Kernel
-        //meshVerticesBuffer = new ComputeBuffer(mesh.vertices.Length, sizeof(float) * 3);
-        //meshVerticesBuffer.SetData(mesh.vertices);
         computeShader.SetBuffer(kernelHandle2, Shader.PropertyToID("meshVertices"), meshVerticesBuffer);
 
         Matrix4x4 thisTransform_TRSM = MathFunctions.Get_TRS_Matrix(this.transform.position, this.transform.rotation.eulerAngles, this.transform.localScale);
@@ -595,10 +548,13 @@ public class CompositeCollider : MonoBehaviour
         CCglobal_CClocal_IMglobal_TRSM_Buffer.SetData(CCglobal_CClocal_IMglobalTRSMs);
         computeShader.SetBuffer(kernelHandle2, Shader.PropertyToID("CCglobal_CClocal_IMglobalTRSMs"), CCglobal_CClocal_IMglobal_TRSM_Buffer);
 
-        // Resend the colliders to update indices to the GPU
-        //collidersToUpdateBuffer = new ComputeBuffer(collidersToUpdate.Length, sizeof(int));
-        //collidersToUpdateBuffer.SetData(collidersToUpdate);
         computeShader.SetBuffer(kernelHandle2, Shader.PropertyToID("collidersToUpdate"), collidersToUpdateBuffer);
+
+        squareNodeConnections_Buffer = new ComputeBuffer(squareNodeConnections.Length, sizeof(int));
+        squareNodeConnections_Buffer.SetData(squareNodeConnections);
+        computeShader.SetBuffer(kernelHandle2, Shader.PropertyToID("squareNodeConnections"), squareNodeConnections_Buffer);
+
+        computeShader.SetBuffer(kernelHandle2, Shader.PropertyToID("sideOrders_XY"), sidesXY_Buffer);
 
         returnDetails2 = new Vector4[colliderIndexes.Count];
         returnDetails2_Buffer = new ComputeBuffer(returnDetails2.Length, sizeof(float) * 4);
@@ -638,113 +594,5 @@ public class CompositeCollider : MonoBehaviour
         //Vector3 scale = new Vector3(rawScale[0], rawScale[1], rawScale[2]);
 
         return new List<object>() { position, quaternion };
-    }
-
-    private void OnDrawGizmos()
-    {
-        /*Gizmos.color = Color.green;
-        Gizmos.DrawLine(colliderVector[0], colliderVector[1]);
-        Gizmos.color = Color.blue;
-        Gizmos.DrawLine(sideVector[0], sideVector[1]);
-        Gizmos.color = Color.red;
-        Gizmos.DrawLine(extraVector[0], extraVector[1]);
-        Gizmos.color = Color.white;
-        Gizmos.DrawLine(hypotenuseVector[0], hypotenuseVector[1]);
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawLine(colliderUpVector[0], colliderUpVector[1]);*/
-        /*Gizmos.color = Color.red;
-        for (int i = 0; i < mesh.vertexCount; i++)
-        {
-            Gizmos.DrawLine(transform.TransformPoint(mesh.vertices[i]), transform.TransformPoint(mesh.vertices[i] + mesh.normals[i]));
-        }*/
-
-        //Gizmos.color = Color.red;
-        //Gizmos.DrawSphere(origin, 0.01f);
-        //Gizmos.DrawSphere(transform.TransformPoint(origin), 05f);
-
-        /*for (int i = 0; i < 6; i++)
-        {
-            Gizmos.DrawLine(origin, origin + directions[i]);
-        }
-
-        Gizmos.color = Color.green;
-        Gizmos.DrawSphere(transform.TransformPoint(mesh.vertices[index]), 0.05f);
-
-        Gizmos.color = Color.blue;
-        List<Vector3> verticesConnectedToQueryPoint = connectedVertices[mesh.vertices[index]];
-
-        for (int i = 0; i < connectedVertices[mesh.vertices[index]].Count; i++)
-        {
-            Gizmos.DrawSphere(transform.TransformPoint(verticesConnectedToQueryPoint[i]), 0.05f);
-        }*/
-
-        /*Gizmos.color = Color.red;
-        List<int> stronglyConnected = colliderTriangles[index];
-
-        for (int i = 0; i < stronglyConnected.Count; i++)
-        {
-            for (int j = 0; j < 3; j++)
-            {
-                Gizmos.DrawSphere(transform.TransformPoint(mesh.vertices[meshTriangles[stronglyConnected[i]][j]]), 0.01f);
-            }
-        }*/
-
-        /*Gizmos.color = Color.red;
-        for (int j = 0; j < 4; j++)
-        {
-            Gizmos.DrawSphere(transform.TransformPoint(mesh.vertices[squareVertices[index][j]]), 0.01f);
-        }*/
-
-
-        //Gizmos.color = Color.green;
-        //Gizmos.DrawSphere(transform.TransformPoint(colliderVertices[4][testIndex]), 0.01f);
-        //Gizmos.DrawSphere(transform.TransformPoint(colliderVertices[testIndex][1]), 0.01f);
-        //Gizmos.DrawSphere(transform.TransformPoint(colliderVertices[testIndex][2]), 0.01f);
-        //Gizmos.DrawSphere(transform.TransformPoint(colliderVertices[testIndex][3]), 0.01f);
-
-        //Gizmos.color = Color.blue;
-        //Gizmos.DrawSphere(transform.TransformPoint(mesh.vertices[312]), 0.05f);
-        //Gizmos.DrawSphere(transform.TransformPoint(mesh.vertices[311]), 0.05f);
-        /*List<Vector3> notDrawn = mesh.vertices.ToList();
-        List<int> notDrawnInts = new List<int>();
-
-        for (int i = 0; i < mesh.vertexCount; i++)
-        {
-            notDrawnInts.Add(i);
-        }
-
-        for (int i = 0; i < colliderTriangles.Count; i++)
-        {
-            for (int j = 0; j < 2; j++)
-            {
-                for (int k = 0; k < 3; k++)
-                {
-                    //Gizmos.DrawCube(transform.TransformPoint(mesh.vertices[meshTriangles[colliderTriangles[i][j]][k]]), new Vector3(0.05f, 0.05f, 0.05f));
-                    notDrawn.Remove(mesh.vertices[meshTriangles[colliderTriangles[i][j]][k]]);
-                    notDrawnInts.Remove(meshTriangles[colliderTriangles[i][j]][k]);
-                }
-
-            }
-        }
-
-        Gizmos.color = Color.blue;
-        for (int i = 0; i < notDrawn.Count; i++)
-        {
-            Gizmos.DrawSphere(transform.TransformPoint(notDrawn[i]), 0.03f);
-        }
-
-        Debug.Log(notDrawn.Count);
-        DebugHelper.PrintList(notDrawnInts);*/
-
-        /*Gizmos.color = Color.blue;
-        Gizmos.DrawSphere(transform.TransformPoint(meshManager.testVertices[0]), 0.05f);
-        Gizmos.DrawSphere(transform.TransformPoint(meshManager.testVertices[1]), 0.05f);
-        Gizmos.DrawSphere(transform.TransformPoint(meshManager.testVertices[2]), 0.05f);
-        Gizmos.color = Color.green;
-        Gizmos.DrawSphere(transform.TransformPoint(meshManager.testVertices[3]), 0.05f);
-        Gizmos.DrawSphere(transform.TransformPoint(meshManager.testVertices[4]), 0.05f);
-        Gizmos.DrawSphere(transform.TransformPoint(meshManager.testVertices[5]), 0.05f);
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawSphere(transform.TransformPoint(meshManager.testVertices[testIndex]), 0.05f);*/
     }
 }

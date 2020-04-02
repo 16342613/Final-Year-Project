@@ -6,7 +6,7 @@ RWStructuredBuffer<int> squareVertices;
 RWStructuredBuffer<float3> meshVertices;
 RWStructuredBuffer<int> collidersToUpdate;
 RWStructuredBuffer<float3> meshNormals;
-RWStructuredBuffer<float4x4> IM_CC_TRSMs;
+RWStructuredBuffer<float4x4> IM_TRSMs;
 
 RWStructuredBuffer<float4x4> CCglobal_CClocal_IMglobalTRSMs;
 RWStructuredBuffer<int> squareNodeConnections;
@@ -317,43 +317,58 @@ float3 RotateVectorByQuaternion(float3 v, float4 r)
     return MultiplyQuaternions(r, MultiplyQuaternions(float4(v, 0), r_c)).xyz;
 }
 
-#pragma kernel Main
-[numthreads(1, 1, 1)]
-void Main(uint3 id : SV_DispatchThreadID)
+/// REFERENCE POINT 11
+#pragma kernel RecalculateCentreAndXYRotations
+[numthreads(1, 1, 1)]   // Each thread pool is 1x1x1 thread/s
+void RecalculateCentreAndXYRotations(uint3 id : SV_DispatchThreadID)
 {
-    int colliderIndex = collidersToUpdate[id.x]; 
-    float4x4 currentIM_TRSM = IM_CC_TRSMs[(2 * id.x) + 0];
+    // Get the collider index
+    int colliderIndex = collidersToUpdate[id.x];
+    // Get the current collider's intermediate object TRS matrix
+    float4x4 currentIM_TRSM = IM_TRSMs[id.x];
     
+    // Recalculate the boxcollider centre using a custom TransformPoint method
     float3 boxColliderCentre = (TransformPoint(meshVertices[squareVertices[(4 * colliderIndex) + 0]], currentIM_TRSM) +
                                 TransformPoint(meshVertices[squareVertices[(4 * colliderIndex) + 1]], currentIM_TRSM) +
                                 TransformPoint(meshVertices[squareVertices[(4 * colliderIndex) + 2]], currentIM_TRSM) +
                                 TransformPoint(meshVertices[squareVertices[(4 * colliderIndex) + 3]], currentIM_TRSM)) / 4;
     
+    // Recalculate the average normal
     float3 averageNormal = (meshNormals[squareVertices[(4 * colliderIndex) + 0]] +
                             meshNormals[squareVertices[(4 * colliderIndex) + 1]] +
                             meshNormals[squareVertices[(4 * colliderIndex) + 2]] +
                             meshNormals[squareVertices[(4 * colliderIndex) + 3]]) / 4;
     
-    float4 rotation = MyLookRotation(TransformDirection(averageNormal, DecomposeTRSM(currentIM_TRSM)[1]), GetAxisDirectionsFromTRSM(currentIM_TRSM)[1]);
+    // Get the new look rotation of the collider using custom matrix methods
+    float4 rotation = MyLookRotation(TransformDirection(averageNormal, DecomposeTRSM(currentIM_TRSM)[1]), 
+                                     GetAxisDirectionsFromTRSM(currentIM_TRSM)[1]);
     
+    // Send back the collider's new centre, rotation and scale, all in one buffer for optimisation
     returnDetails[id.x] = GenerateReturnMatrix(boxColliderCentre, rotation, float3(1, 1, 1));
 }
 
-#pragma kernel Main2
-[numthreads(1, 1, 1)]
-void Main2(uint3 id : SV_DispatchThreadID)
+#pragma kernel RecalculateColliderZRotationAndSize
+[numthreads(1, 1, 1)]   // Each thread pool is 1x1x1 thread/s
+void RecalculateColliderZRotationAndSize(uint3 id : SV_DispatchThreadID)
 {
+    // Retrieve the data from the compute buffers
     int colliderIndex = collidersToUpdate[id.x];
     float4x4 colliderContainerGlobalTransform = CCglobal_CClocal_IMglobalTRSMs[(3 * id.x) + 0];
     float4x4 colliderContainerLocalTransform = CCglobal_CClocal_IMglobalTRSMs[(3 * id.x) + 1];
     float4 intermediateObjectRotation = DecomposeTRSM(CCglobal_CClocal_IMglobalTRSMs[(3 * id.x) + 2])[1];
     float4 transformRotation = DecomposeTRSM(thisTransform)[1];
     
-    float3 vec1 = TransformDirection(TransformDirection(meshVertices[squareNodeConnections[(4 * colliderIndex) + 2]] - meshVertices[squareNodeConnections[(4 * colliderIndex) + 0]], intermediateObjectRotation), transformRotation);
-    float3 vec2 = TransformDirection(TransformDirection(meshVertices[squareNodeConnections[(4 * colliderIndex) + 1]] - meshVertices[squareNodeConnections[(4 * colliderIndex) + 2]], intermediateObjectRotation), transformRotation);
-    float3 vec3 = TransformDirection(TransformDirection(meshVertices[squareNodeConnections[(4 * colliderIndex) + 3]] - meshVertices[squareNodeConnections[(4 * colliderIndex) + 1]], intermediateObjectRotation), transformRotation);
-    float3 vec4 = TransformDirection(TransformDirection(meshVertices[squareNodeConnections[(4 * colliderIndex) + 0]] - meshVertices[squareNodeConnections[(4 * colliderIndex) + 3]], intermediateObjectRotation), transformRotation);
+    // Get the sides of the SCTP polygon using custom matrix methods
+    float3 vec1 = TransformDirection(TransformDirection(meshVertices[squareNodeConnections[(4 * colliderIndex) + 2]] - 
+                    meshVertices[squareNodeConnections[(4 * colliderIndex) + 0]], intermediateObjectRotation), transformRotation);
+    float3 vec2 = TransformDirection(TransformDirection(meshVertices[squareNodeConnections[(4 * colliderIndex) + 1]] - 
+                    meshVertices[squareNodeConnections[(4 * colliderIndex) + 2]], intermediateObjectRotation), transformRotation);
+    float3 vec3 = TransformDirection(TransformDirection(meshVertices[squareNodeConnections[(4 * colliderIndex) + 3]] - 
+                    meshVertices[squareNodeConnections[(4 * colliderIndex) + 1]], intermediateObjectRotation), transformRotation);
+    float3 vec4 = TransformDirection(TransformDirection(meshVertices[squareNodeConnections[(4 * colliderIndex) + 0]] - 
+                    meshVertices[squareNodeConnections[(4 * colliderIndex) + 3]], intermediateObjectRotation), transformRotation);
     
+    // Compute the average side vector
     float3 averageSideVector = normalize(vec2 - vec4);
     
     float3 correctColliderUp = cross(averageSideVector, TransformDirection(GetAxisDirectionsFromTRSM(colliderContainerGlobalTransform)[2], transformRotation));

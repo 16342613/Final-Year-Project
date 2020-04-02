@@ -3826,9 +3826,6 @@ GameObject:
   - component: {fileID: 1694281963240246038}
   - component: {fileID: 1272476348511433325}
   - component: {fileID: 4799457438717711052}
-  - component: {fileID: 5853480990648101552}
-  - component: {fileID: 5853480990648101555}
-  - component: {fileID: 5853480990648101553}
   m_Layer: 0
   m_Name: EngineBlock
   m_TagString: Untagged
@@ -3897,48 +3894,6 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
---- !u!54 &5853480990648101552
-Rigidbody:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5853480990648101554}
-  serializedVersion: 2
-  m_Mass: 1
-  m_Drag: 0.5
-  m_AngularDrag: 0.5
-  m_UseGravity: 1
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 0
-  m_CollisionDetection: 0
---- !u!138 &5853480990648101555
-FixedJoint:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5853480990648101554}
-  m_ConnectedBody: {fileID: 356620692923353913}
-  m_BreakForce: Infinity
-  m_BreakTorque: Infinity
-  m_EnableCollision: 0
-  m_EnablePreprocessing: 1
-  m_MassScale: 1
-  m_ConnectedMassScale: 1
---- !u!114 &5853480990648101553
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5853480990648101554}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8ea32238f4190b945a59fb0a1b957f19, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &6019526865052896695
 GameObject:
   m_ObjectHideFlags: 0
