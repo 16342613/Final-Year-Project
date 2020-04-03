@@ -368,22 +368,28 @@ void RecalculateColliderZRotationAndSize(uint3 id : SV_DispatchThreadID)
     float3 vec4 = TransformDirection(TransformDirection(meshVertices[squareNodeConnections[(4 * colliderIndex) + 0]] - 
                     meshVertices[squareNodeConnections[(4 * colliderIndex) + 3]], intermediateObjectRotation), transformRotation);
     
-    // Compute the average side vector
+    // Recompute the average side vector
     float3 averageSideVector = normalize(vec2 - vec4);
     
-    float3 correctColliderUp = cross(averageSideVector, TransformDirection(GetAxisDirectionsFromTRSM(colliderContainerGlobalTransform)[2], transformRotation));
+    // Recalculate the correct z axis rotation angle of the box collider
+    float3 correctColliderUp = cross(averageSideVector, TransformDirection(
+                                 GetAxisDirectionsFromTRSM(colliderContainerGlobalTransform)[2], transformRotation));
     float3 currentColliderUp = TransformDirection(GetAxisDirectionsFromTRSM(colliderContainerGlobalTransform)[1], transformRotation);
-    float rotationAngle = SignedAngle(correctColliderUp, currentColliderUp, TransformDirection(GetAxisDirectionsFromTRSM(colliderContainerGlobalTransform)[2], transformRotation));
-
-    returnDetails2[id.x][3] = rotationAngle;
+    float rotationAngle = SignedAngle(correctColliderUp, currentColliderUp, 
+                                 TransformDirection(GetAxisDirectionsFromTRSM(colliderContainerGlobalTransform)[2], transformRotation));
     
+    // Recalculate the correct size of the box collider
     float4x3 sideVectors = float4x3(vec1, vec2, vec3, vec4);
-    float xSideLength = (length(sideVectors[sideOrders_XY[(4 * colliderIndex) + 0]]) + length(sideVectors[sideOrders_XY[(4 * colliderIndex) + 1]])) / 2;
-    float ySideLength = (length(sideVectors[sideOrders_XY[(4 * colliderIndex) + 2]]) + length(sideVectors[sideOrders_XY[(4 * colliderIndex) + 3]])) / 2;
+    float xSideLength = (length(sideVectors[sideOrders_XY[(4 * colliderIndex) + 0]]) + 
+                         length(sideVectors[sideOrders_XY[(4 * colliderIndex) + 1]])) / 2;
+    float ySideLength = (length(sideVectors[sideOrders_XY[(4 * colliderIndex) + 2]]) + 
+                         length(sideVectors[sideOrders_XY[(4 * colliderIndex) + 3]])) / 2;
     
     float3 colliderSize = float3(xSideLength, ySideLength, 0.0001);
     
+    // Populate the return buffer
     returnDetails2[id.x][0] = colliderSize.x;
     returnDetails2[id.x][1] = colliderSize.y;
     returnDetails2[id.x][2] = colliderSize.z;
+    returnDetails2[id.x][3] = rotationAngle;
 }

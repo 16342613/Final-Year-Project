@@ -394,11 +394,6 @@ public class CompositeCollider : MonoBehaviour
 
         boxColliderCentre = boxColliderCentre / 4;
 
-        if (colliderIndex == index)
-        {
-            Debug.Log("OLD: " + boxColliderCentre);
-        }
-
         //intermediateObject.transform.localPosition = Vector3.zero;
         colliderContainer.transform.position = boxColliderCentre;
 
@@ -433,39 +428,6 @@ public class CompositeCollider : MonoBehaviour
         intermediateObjects[colliderIndex] = intermediateObject;
         colliderContainers[colliderIndex] = colliderContainer;
         colliders[colliderIndex] = collider;
-    }
-
-    public void UpdateColliderGroup(List<int> colliderIndexes, int frameSpread = 1)
-    {
-        finishedRoutine = false;
-        var indexInterval = Math.Floor(colliderIndexes.Count * (((double)1) / frameSpread));
-
-        for (int i = 0; i < colliderIndexes.Count; i++)
-        {
-            UpdateCollider(colliderIndexes[i]);
-            index++;
-
-            if (i == 0)
-            {
-                //continue;
-            }
-
-            if (i % indexInterval == 0)
-            {
-                //yield return null;
-            }
-        }
-
-        index = 0;
-        finishedRoutine = true;
-    }
-
-    public void UpdateColliderNaive(List<int> colliderIndexes)
-    {
-        for (int i = 0; i < colliderIndexes.Count; i++)
-        {
-            UpdateCollider(colliderIndexes[i]);
-        }
     }
 
     /// REFERENCE POINT 10
