@@ -120,7 +120,7 @@ public class PlasticDeformer : Deformer
             totalForce += forces[i];
         }
 
-        localRange = (totalForce / (float)forces.Length) * 0.01f;
+        localRange = (totalForce / (float)forces.Length) * 0.1f;
 
         for (int i = 0; i < forceOrigins.Length; i++)
         {
