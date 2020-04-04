@@ -11,26 +11,21 @@ public class CollisionHandler : MonoBehaviour
     private Vector3[] collisionPoints;
     private Dictionary<GameObject, Deformer> collisionObjectToScript = new Dictionary<GameObject, Deformer>();
     private float objectMass;
-    private List<int> ignoredLayers = new List<int>();
 
     private void Start()
     {
-        ignoredLayers.Add(LayerMask.NameToLayer("Wheel"));
-        ignoredLayers.Add(LayerMask.NameToLayer("Terrain"));
-
         try
         {
             objectMass = this.GetComponent<Rigidbody>().mass;
         }
         catch (MissingComponentException)
         {
-            objectMass = 10;
+            objectMass = 1;
         }
     }
 
     private void OnCollisionEnter(Collision collision)
     {
-        if (ignoredLayers.Contains(collision.gameObject.layer)) return;
 
         if (collision.gameObject.GetComponent<PlasticDeformer>() != null)
         {
@@ -83,8 +78,6 @@ public class CollisionHandler : MonoBehaviour
 
     private void OnCollisionStay(Collision collision)
     {
-        if (ignoredLayers.Contains(collision.gameObject.layer)) return;
-
         try
         {
             collisionObjectToScript[collision.gameObject].contactInfo[this.gameObject] = collision.contacts;
@@ -98,8 +91,6 @@ public class CollisionHandler : MonoBehaviour
 
     private void OnCollisionExit(Collision collision)
     {
-        if (ignoredLayers.Contains(collision.gameObject.layer)) return;
-
         try
         {
             collisionObjectToScript[collision.gameObject].contactInfo.Remove(this.gameObject);

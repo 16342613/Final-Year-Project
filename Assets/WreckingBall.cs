@@ -11,24 +11,25 @@ public class WreckingBall : MonoBehaviour
     public Vector3 movementAxis;
     public float movementDistance;
     public float speed;
+    private float switchDirectionThreshold;
 
 
     // Start is called before the first frame update
     void Start()
     {
         startLerpPosition = this.transform.position;
-
         endLerpPosition = startLerpPosition + (movementAxis * movementDistance);
+        switchDirectionThreshold = movementDistance * 0.1f * speed;
     }
 
     // Update is called once per frame
     void FixedUpdate()
     {
-        if (Vector3.Distance(this.transform.position, startLerpPosition) < 0.1f)
+        if (Vector3.Distance(this.transform.position, startLerpPosition) < switchDirectionThreshold)
         {
             newPosition = endLerpPosition;
         }
-        else if (Vector3.Distance(this.transform.position, endLerpPosition) < 0.1f)
+        else if (Vector3.Distance(this.transform.position, endLerpPosition) < switchDirectionThreshold)
         {
             newPosition = startLerpPosition;
         }

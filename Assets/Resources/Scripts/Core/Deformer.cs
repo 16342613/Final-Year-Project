@@ -18,7 +18,7 @@ public class Deformer : MonoBehaviour
     [HideInInspector]
     public Dictionary<GameObject, float> collisionInfo = new Dictionary<GameObject, float>();
 
-    public struct Vertex
+    /*public struct Vertex
     {
         public Vector3 position;
         public Vector3 velocity;
@@ -40,7 +40,7 @@ public class Deformer : MonoBehaviour
             this.forceAmount = forceAmount;
             this.forceOrigin = forceOrigin;
         }
-    }
+    }*/
 
     private float collisionProximitySimilarity = 1f;
 

@@ -10,9 +10,6 @@ using Debug = UnityEngine.Debug;
 
 public class PlasticDeformer : Deformer
 {
-    private ObjectProperties objectProperties;
-
-    private Renderer objectRenderer;
     private float[] maxReboundVelocity;
 
     public float meshStrength = 1f;
@@ -21,9 +18,6 @@ public class PlasticDeformer : Deformer
     public float damping = 5f;
     public bool returnToRestingForm = false;
     private float uniformScale = 1f;
-    private int frameCount = 0;
-
-    private Vector3[] secondaryVertexArray;
 
     private CompositeCollider compositeCollider;
     private Dictionary<int, List<int>> vertexSquareMapping = new Dictionary<int, List<int>>();
@@ -37,40 +31,35 @@ public class PlasticDeformer : Deformer
     private int framesSinceGPUCall = 0;
     private int updateThreshold;
 
+    /// REFERENCE POINT 13
     void Start()
     {
-        objectRenderer = this.GetComponent<Renderer>();
         deformedMesh = this.GetComponent<MeshFilter>().mesh;
+        // Store the original vertex positions of the mesh
         originalVertices = deformedMesh.vertices;
+        // This is the deformed vertex positions of the mesh, used during runtime
         deformedVertices = deformedMesh.vertices;
-        secondaryVertexArray = deformedMesh.vertices;
+        // The velocities of each vertex
         vertexVelocities = new Vector3[originalVertices.Length];
-
+        // This stores the maximum deformation of each vertex so far
         maxReboundVelocity = new float[originalVertices.Length];
 
-        MeshManager meshManager = new MeshManager(this.GetComponent<MeshFilter>(), this.gameObject.name);
-
+        // Find out the indices of every vertex in the SCTPs
         compositeCollider = this.gameObject.GetComponent<CompositeCollider>();
-
         vertexSquareMapping = compositeCollider.vertexSquareMapping;
-
-        updateThreshold = Mathf.FloorToInt((float)compositeCollider.colliderTriangles.Count * ((float)updateThresholdPercentage / (float)100));
+        // The number of SCTPs that have been changed to trigger an update
+        updateThreshold = Mathf.FloorToInt((float)compositeCollider.colliderTriangles.Count * 
+                                            ((float)updateThresholdPercentage / (float)100));
     }
 
     void FixedUpdate()
     {
+        // Convert the raw Unity colliision data into a more presentable format
         ParseContactPoints();
-        frameCount = 0;
-
         uniformScale = this.transform.localScale.x;
 
         Vector3[] contactPoints = contactDetails.Values.ToArray();
         float[] forces = contactDetails.Keys.ToArray();
-
-        for (int i = 0; i < forces.Length; i++)
-        {
-            forces[i] = 2;
-        }
 
         if (contactPoints.Length > 0)
         {
@@ -99,9 +88,6 @@ public class PlasticDeformer : Deformer
         {
             GPU_Handover(null, true);
         }
-
-        //Debug.Log(framesSinceGPUCall + " ; " + collidersToUpdate.Count);
-        //Debug.Log("FPS : " + (1.0f / Time.deltaTime));
     }
 
     private void GPU_Handover(List<int> newCollidersToUpdate, bool forceUpdate = false)
@@ -121,6 +107,7 @@ public class PlasticDeformer : Deformer
         framesSinceGPUCall = 0;
     }
 
+    /// REFERENCE POINT 14
     public void PlasticDeformVertexColliders(int vertexIndex, Vector3[] forceOrigins, float[] forces)
     {
         Vector3 vertVel = Vector3.zero;
@@ -133,7 +120,7 @@ public class PlasticDeformer : Deformer
             totalForce += forces[i];
         }
 
-        localRange = (totalForce / (float)forces.Length) * 0.1f;
+        localRange = (totalForce / (float)forces.Length) * 0.01f;
 
         for (int i = 0; i < forceOrigins.Length; i++)
         {
@@ -158,14 +145,14 @@ public class PlasticDeformer : Deformer
 
         vertexVelocities[vertexIndex] = vertVel;
 
-        Vector3 displacement = secondaryVertexArray[vertexIndex] - originalVertices[vertexIndex];
+        Vector3 displacement = deformedVertices[vertexIndex] - originalVertices[vertexIndex];
         displacement *= uniformScale;
 
         Vector3 reboundVelocity = displacement * springForce;
 
         vertexVelocities[vertexIndex] -= reboundVelocity;
         vertexVelocities[vertexIndex] *= 1f - damping * Time.deltaTime;
-        secondaryVertexArray[vertexIndex] += vertexVelocities[vertexIndex] * Time.deltaTime;
+        deformedVertices[vertexIndex] += vertexVelocities[vertexIndex] * Time.deltaTime;
 
         if (reboundVelocity.magnitude > maxReboundVelocity[vertexIndex])
         {
@@ -175,8 +162,6 @@ public class PlasticDeformer : Deformer
         {
             return;
         }
-
-        deformedVertices[vertexIndex] = secondaryVertexArray[vertexIndex];
 
         if (vertexSquareMapping.ContainsKey(vertexIndex) == false)
         {

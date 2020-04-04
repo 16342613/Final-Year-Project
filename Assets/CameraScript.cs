@@ -18,7 +18,7 @@ public class CameraScript : MonoBehaviour
     // Update is called once per frame
     void LateUpdate()
     {
-        Vector3 desiredPosition = target.transform.position + offset;
+        Vector3 desiredPosition = target.transform.TransformPoint(offset);//target.transform.position + offset;
         Vector3 smoothedPosition = Vector3.SmoothDamp(this.transform.position, desiredPosition, ref velocity, smoothSpeed);
         //Vector3 smoothedRotation = Vector3.SmoothDamp(this.transform.rotation.eulerAngles, target.transform.rotation.eulerAngles, ref velocity, smoothSpeed);
 
