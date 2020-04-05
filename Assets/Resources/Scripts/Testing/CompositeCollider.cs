@@ -23,7 +23,7 @@ public class CompositeCollider : MonoBehaviour
     public List<GameObject> intermediateObjects = new List<GameObject>();
     public List<GameObject> colliderContainers = new List<GameObject>();
     public List<BoxCollider> colliders = new List<BoxCollider>();
-    private float colliderHeight = 0.0001f;
+    private float colliderHeight = 0.01f;
     private MeshManager meshManager;
     public Dictionary<int, List<int>> vertexSquareMapping;
     public bool finishedRoutine = true;

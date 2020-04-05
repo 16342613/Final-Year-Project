@@ -2,27 +2,28 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class TurretScript : MonoBehaviour
+public class SniperScript : MonoBehaviour
 {
-    private Transform turretRoot;
     private Transform player;
     public GameObject ammo;
     public float power;
-    private List<GameObject> firedAmmos = new List<GameObject>();
+    public float range;
+    private bool canFire;
 
     void Start()
     {
-        turretRoot = this.transform.root;
         player = GameObject.FindGameObjectWithTag("Player").transform;
+        InvokeRepeating("Reload", 0f, 4f);
     }
 
-    // Update is called once per frame
+    private void Reload()
+    {
+        canFire = true;
+    }
+
     void Update()
     {
-        //turretRoot.Rotate(0, 5, 0);
-        turretRoot.LookAt(player);
-
-        if (Input.GetKeyDown(KeyCode.Space))
+        if ((Vector3.Distance(this.transform.position, player.position) < range) && (canFire == true))
         {
             Shoot(player);
         }
@@ -34,6 +35,6 @@ public class TurretScript : MonoBehaviour
         firedAmmo.transform.LookAt(target);
         firedAmmo.GetComponent<Rigidbody>().AddForce(firedAmmo.transform.forward * power);
 
-        firedAmmos.Add(firedAmmo);
+        canFire = false;
     }
 }

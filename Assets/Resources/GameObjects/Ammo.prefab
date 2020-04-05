@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 8306874042757085506}
   - component: {fileID: 8306874042757085509}
   - component: {fileID: 8306874042757085518}
+  - component: {fileID: 5845777228851862826}
   m_Layer: 0
   m_Name: Ammo
   m_TagString: Untagged
@@ -103,7 +104,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8306874042757085508}
   serializedVersion: 2
-  m_Mass: 5
+  m_Mass: 7.5
   m_Drag: 0
   m_AngularDrag: 0
   m_UseGravity: 0
@@ -121,5 +122,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3e43a143f50217145803a6151601ba9d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &5845777228851862826
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8306874042757085508}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 88ccd442025a78b48b61b4deadbe9bcc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 

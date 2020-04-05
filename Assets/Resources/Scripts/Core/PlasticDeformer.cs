@@ -44,14 +44,15 @@ public class PlasticDeformer : Deformer
         // This stores the maximum deformation of each vertex so far
         maxReboundVelocity = new float[originalVertices.Length];
 
-        // Find out the indices of every vertex in the SCTPs
+        // Find out what vertex is mapped to what SCTP
         compositeCollider = this.gameObject.GetComponent<CompositeCollider>();
         vertexSquareMapping = compositeCollider.vertexSquareMapping;
         // The number of SCTPs that have been changed to trigger an update
-        updateThreshold = Mathf.FloorToInt((float)compositeCollider.colliderTriangles.Count * 
+        updateThreshold = Mathf.FloorToInt((float)compositeCollider.colliderTriangles.Count *
                                             ((float)updateThresholdPercentage / (float)100));
     }
 
+    /// REFERENCE POINT 15
     void FixedUpdate()
     {
         // Convert the raw Unity colliision data into a more presentable format
@@ -69,38 +70,35 @@ public class PlasticDeformer : Deformer
             }
         }
 
+        // Overwrite the old vertex positions with the new vertex positions
         deformedMesh.vertices = deformedVertices;
         deformedMesh.RecalculateNormals();
 
+        // If there are colliders that need to be updated
         if (collidersToUpdate.Count > 0)
         {
-           //GPU_Handover(collidersToUpdate);  // Update every frame no matter what
-
             if (collidersToUpdate.Count > updateThreshold)
             {
-                GPU_Handover(collidersToUpdate);
+                // Prep sending the task to the GPU
+                GPU_Handover();
             }
 
+            // The number of frames since the colliders were last updated
             framesSinceGPUCall++;
         }
 
+        // If the number of colliders to be updated is below the threshold, but they 
+        // have been 'in the queue' for greater than the max number of idle frames, 
+        // send this to the GPU
         if ((framesSinceGPUCall > maxIdleFrames) && (collidersToUpdate.Count > 0))
         {
-            GPU_Handover(null, true);
+            GPU_Handover();
         }
     }
 
-    private void GPU_Handover(List<int> newCollidersToUpdate, bool forceUpdate = false)
+    private void GPU_Handover()
     {
-        if (forceUpdate == true)
-        {
-            collidersToUpdate = collidersToUpdate.Distinct().ToList();
-        }
-        else
-        {
-            collidersToUpdate.AddRange(newCollidersToUpdate);
-            collidersToUpdate = collidersToUpdate.Distinct().ToList();
-        }
+        collidersToUpdate = collidersToUpdate.Distinct().ToList();
 
         compositeCollider.UpdateColliderGPU(collidersToUpdate);
         collidersToUpdate.Clear();
@@ -115,21 +113,27 @@ public class PlasticDeformer : Deformer
         float localRange = 0;
         float totalForce = 0;
 
+        // Get the resultant force on the vertex
         for (int i = 0; i < forces.Length; i++)
         {
             totalForce += forces[i];
         }
 
-        localRange = (totalForce / (float)forces.Length) * 0.1f;
+        // The area of effect threshold
+        localRange = (totalForce / (float)forces.Length) * 0.01f;
 
+        // Find out which forces are within the area of effect
         for (int i = 0; i < forceOrigins.Length; i++)
         {
+            // The distance from the force to the vertex
             float distance = Vector3.Distance(deformedVertices[vertexIndex], forceOrigins[i]);
 
+            // If the force is too far away
             if (distance > localRange)
             {
                 noForceCount++;
 
+                // If all forces are too far away, skip this vertex
                 if (noForceCount == (forceOrigins.Length))
                 {
                     return;
@@ -138,26 +142,32 @@ public class PlasticDeformer : Deformer
                 continue;
             }
 
+            // This is the actual force on the vertex (Inverese square law)
             float forceAtVertex = forces[i] / (meshStrength + 5 * (distance * distance));
+            // This is the acceleration of the vertex (Newton's laws of motion)
             float vertexAcceleration = forceAtVertex / vertexMass;
+            // The updated velocity of the vertex after applying acceleration (Hooke's law still needs to be applied)
             vertVel += (deformedVertices[vertexIndex] - forceOrigins[i]).normalized * vertexAcceleration;
         }
 
         vertexVelocities[vertexIndex] = vertVel;
 
+        // Take the scale of the object into account!
         Vector3 displacement = deformedVertices[vertexIndex] - originalVertices[vertexIndex];
         displacement *= uniformScale;
-
+        // The velocity acting against the direction of movement (Hooke's law)
         Vector3 reboundVelocity = displacement * springForce;
-
         vertexVelocities[vertexIndex] -= reboundVelocity;
+        // Apply damping
         vertexVelocities[vertexIndex] *= 1f - damping * Time.deltaTime;
         deformedVertices[vertexIndex] += vertexVelocities[vertexIndex] * Time.deltaTime;
 
+        // If this rebound velocity is greater than the previous greatest rebound velocity
         if (reboundVelocity.magnitude > maxReboundVelocity[vertexIndex])
         {
             maxReboundVelocity[vertexIndex] = reboundVelocity.magnitude;
         }
+        // If this rebound velocity is less than the previous greatest rebound velocity
         else if (reboundVelocity.magnitude < maxReboundVelocity[vertexIndex] && returnToRestingForm == false)
         {
             return;
@@ -172,31 +182,9 @@ public class PlasticDeformer : Deformer
         {
             if (collidersToUpdate.Contains(vertexSquareMapping[vertexIndex][i]) == false)
             {
-            collidersToUpdate.Add(vertexSquareMapping[vertexIndex][i]);
+                collidersToUpdate.Add(vertexSquareMapping[vertexIndex][i]);
             }
         }
     }
-
-    // Gizmos for debug
-    /*private void OnDrawGizmos()
-    {
-        Gizmos.color = Color.red;
-        //Gizmos.DrawSphere(transform.TransformPoint(collisionPoint), 0.01f);
-        //Gizmos.DrawSphere(transform.TransformPoint(offsetCollision), 0.01f);
-
-        Gizmos.color = Color.green;
-        for(int i=0; i<vertices.Length; i++)
-        {
-            //Gizmos.DrawLine(transform.TransformPoint(deformedVertices[i]), transform.TransformPoint(deformedVertices[i] + test[i]));
-            //Gizmos.DrawLine(transform.TransformPoint(deformedVertices[i]), transform.TransformPoint(deformedVertices[i] - test[i] * 0.01f));
-            Gizmos.DrawSphere(transform.TransformPoint(test[i]), 0.01f);
-        }
-
-        //Gizmos.DrawSphere(transform.TransformPoint(deformedVertices[3000]), 0.01f);
-
-        Gizmos.color = Color.white;
-        //Gizmos.DrawLine(transform.TransformPoint(offsetCollision), transform.TransformPoint(offsetPoint));
-        //Gizmos.DrawSphere(transform.TransformPoint(deformedVertices[5500]), 0.01f);
-    }*/
 }
 

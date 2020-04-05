@@ -14,7 +14,7 @@ public class CannonScript : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        InvokeRepeating("Reload", 0f, 0.5f);  //1s delay, repeat every 1s
+        InvokeRepeating("Reload", 0f, 0.5f);
     }
 
     // Update is called once per frame

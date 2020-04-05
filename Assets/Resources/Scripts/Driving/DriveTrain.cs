@@ -33,19 +33,21 @@ public class DriveTrain : MonoBehaviour
             if (Input.GetKey(KeyCode.D) && wheelCol.steerAngle < 25)
             {
                 wheelCol.steerAngle += 5;
-                associatedWheel.transform.localEulerAngles = new Vector3(associatedWheel.transform.localEulerAngles.x, -wheelCol.steerAngle, associatedWheel.transform.localEulerAngles.z);
+                //associatedWheel.transform.localEulerAngles = new Vector3(associatedWheel.transform.localEulerAngles.x, -wheelCol.steerAngle, associatedWheel.transform.localEulerAngles.z);
             }
             else if (Input.GetKey(KeyCode.A) && wheelCol.steerAngle > -25)
             {
                 wheelCol.steerAngle -= 5;
-                associatedWheel.transform.localEulerAngles = new Vector3(associatedWheel.transform.localEulerAngles.x, -wheelCol.steerAngle, associatedWheel.transform.localEulerAngles.z);
             }
             else
             {
-                if (Mathf.Abs(wheelCol.steerAngle) > 1)
+                if (wheelCol.steerAngle > 1)
                 {
-                    //wheelCol.steerAngle = wheelCol.steerAngle / 5;
-                    //associatedWheel.transform.localEulerAngles = new Vector3(associatedWheel.transform.localEulerAngles.x, -wheelCol.steerAngle, associatedWheel.transform.localEulerAngles.z);
+                    wheelCol.steerAngle = wheelCol.steerAngle - 1;
+                }
+                else if (wheelCol.steerAngle < 1)
+                {
+                    wheelCol.steerAngle = wheelCol.steerAngle + 1;
                 }
             }
         }
@@ -69,5 +71,6 @@ public class DriveTrain : MonoBehaviour
         }
 
         associatedWheel.transform.Rotate(wheelCol.rpm / 60 * 360 * Time.deltaTime, 0, 0);
+        associatedWheel.transform.localEulerAngles = new Vector3(associatedWheel.transform.localEulerAngles.x, -wheelCol.steerAngle, associatedWheel.transform.localEulerAngles.z);
     }
 }
